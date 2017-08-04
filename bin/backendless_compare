@@ -1,0 +1,104 @@
+#!/usr/bin/env node
+const _ = require('lodash');
+const BackendlessConsole = require('../libs/backendless-console-api.js');
+const chalk = require('chalk');
+const checkForArguments = require('../utils/checkArgs');
+const commandLineArgs = require('command-line-args');
+const fs = require('fs');
+const getUsage = require('command-line-usage');
+const Promise = require('bluebird');
+const Reporter = require('../libs/reporter.js');
+const ansi_banner = require('../constants/command-banner');
+const sections = require('../constants/command-help');
+const optionDefinitions = require('../constants/command-options');
+const util = require('util');
+const usage = getUsage(sections);
+const banner = getUsage(ansi_banner);
+const options = commandLineArgs(optionDefinitions);
+const logHelper = require('../utils/log-helper');
+const { AppRolesCompare, ColumnCompare, RelationCompare, TableCompare, TableRolesCompare } = require('../libs/comparator');
+let backendless, beAppState;
+
+Promise.promisifyAll(fs);
+
+console.log(banner)
+
+checkForArguments(options.compare)
+    .then(() => {
+        const {
+            'username': username,
+            'password': password,
+            'application-control': appControl,
+            'applications-to-check': appsToCheck,
+            'reporting-directory': reportingDir,
+            'backendless-version': beVersion
+        } = options.compare;
+
+        backendless = new BackendlessConsole(username, password, appControl, appsToCheck, reportingDir, beVersion);
+
+        return backendless.getAppMeta();
+    })
+    .then(() => backendless.getAppDataTables())
+    .then(() => backendless.getAppRoles())
+    .then(() => backendless.getAppRolePermissions())
+    .then(() => backendless.updateAppRefs())
+    .then(appData => {
+        beAppState = appData;
+        return logHelper.writeAppDataToFile(_.flatMap(beAppState, app => app), 'tables');
+    })
+    .then(() => {
+        const tableCompare = new TableCompare(beAppState.controlApp, beAppState.appsToCheck);
+        return tableCompare.compareData();
+    })
+    .then(tableConsoleDiffs => {
+        console.log('\n\n' + chalk.bold.underline.blue('Table Diffs (less roles): '));
+        console.log(tableConsoleDiffs);
+        const rolesCompare = new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck);
+        return rolesCompare.compareData();
+    })
+    .then(rolesDiff => {
+        console.log('\n\n' + chalk.bold.underline.blue('App Roles Diffs: '));
+        console.log(rolesDiff);
+    })
+    .catch((err) => {
+        console.log(util.inspect(err));
+        console.log(chalk.bold.red(err));
+    });
+
+// function getApps(appList, beVersion) {
+//     const versionAppList = _.filter(appList, {version: beVersion});
+//     if (versionAppList.length > 1) {
+//         return versionAppList;
+//     } else {
+//         throw new Error('There are not enough apps to compare for the version you provided!');
+//     }
+// }
+//
+// function getControlApp(appControl) {
+//     const controlApp = _.find(beDataState.apps, {appName: appControl});
+//     if (_.isEmpty(controlApp)) {
+//         throw new Error(`Control application name provided (${appControl}) was not found!`);
+//     } else {
+//         return controlApp
+//     }
+// }
+//
+// function getAppsToCheck(appsToCheck) {
+//     const appsToCheckFound = _.filter(beDataState.apps, app => _.includes(appsToCheck, app.appName));
+//     if (!_.isEmpty(appsToCheckFound)) {
+//         return appsToCheckFound;
+//     } else {
+//         const appNames = _.map(beDataState.apps, 'appName');
+//         throw new Error(`
+//             No apps to check were found!
+//             Apps provided: ${appsToCheck}
+//             Apps found: ${appNames}
+//         `);
+//     }
+// }
+
+function getHtmlTemplate(insertDiff) {
+    return '<!DOCTYPE html><html><head><script type="text/javascript" src="build/jsondiffpatch.min.js"></script><script type="text/javascript" src="build/jsondiffpatch-formatters.min.js"></script><link rel="stylesheet" href="html.css" type="text/css" /></head>' +
+    '<body><hr/><div id="visual"></div><hr/><script>document.getElementById(\'visual\').innerHTML = ' + JSON.stringify(insertDiff) +
+    ';</script></body></html>';
+}
