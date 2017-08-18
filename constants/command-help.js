@@ -49,6 +49,12 @@ module.exports = [
                 alias: 'v',
                 typeLabel: '[underline]{\[\'Version 3.1.0 or 4.0\'\]}',
                 description: 'Default: 3.1.0'
+            },
+            {
+                name: 'timeout',
+                alias: 't',
+                typeLabel: '[underline]{\[30000\]}',
+                description: 'Default: 30000'
             }
         ]
     }

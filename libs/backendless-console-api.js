@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const Promise = require('bluebird');
 
 class Backendless {
-    constructor(username,password,controlAppName,appNamesToCheck,reportingDir,beVersion) {
+    constructor(username,password,controlAppName,appNamesToCheck,reportingDir,beVersion,timeout) {
         /* Make a list of apps that are contextual to this check */
         const appsContext = _.concat(controlAppName, appNamesToCheck);
 
@@ -14,7 +14,7 @@ class Backendless {
         /* Create axios request instance for http calls */
         const instance = axios.create({
             baseURL: 'https://develop.backendless.com/',
-            timeout: 10000,
+            timeout: timeout,
             headers: {
                 'content-type': 'application/json',
                 'application-type': 'REST'

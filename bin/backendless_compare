@@ -31,10 +31,11 @@ checkForArguments(options.compare)
             'application-control': appControl,
             'applications-to-check': appsToCheck,
             'reporting-directory': reportingDir,
-            'backendless-version': beVersion
+            'backendless-version': beVersion,
+            'timeout': timeout
         } = options.compare;
 
-        backendless = new BackendlessConsole(username, password, appControl, appsToCheck, reportingDir, beVersion);
+        backendless = new BackendlessConsole(username, password, appControl, appsToCheck, reportingDir, beVersion,timeout);
 
         return backendless.getAppMeta();
     })
