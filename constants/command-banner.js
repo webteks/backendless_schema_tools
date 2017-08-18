@@ -1,7 +1,7 @@
 const ansi = require('ansi-escape-sequences');
 const header = require('../assets/ansi-header.js');
 const chalk = require('chalk');
-
+const package = require('../package.json');
 /**
  * This is the banner splash screen, displayed once.
  * @type {*[]}
@@ -18,6 +18,7 @@ module.exports = [
     {
         header: 'Backendless helper utility',
         group: ['header','_none'],
-        content: 'By: Charles Russell (charles.russell@webteks.com)\r\nJohn Pribesh (john.pribesh@webteks.com)'
+        content: 'By: Charles Russell (charles.russell@webteks.com)\r\nJohn Pribesh (john.pribesh@webteks.com)',
+	content: 'Version: ' + package.version
     }
 ]

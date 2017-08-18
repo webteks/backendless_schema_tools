@@ -1,7 +1,7 @@
 {
-  "name": "backendless_schema_tools",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@webteks/backendless_schema_tools",
+  "version": "1.0.1",
+  "description": "To install and test this utility  * git clone git@github.com:webteks/backendless_schema_tools.git  * cd backendless_schema_tools  * npm install -g",
   "url": "https://bithub.com/webteks/backendless_schema_tools/issues",
   "email": "support@webteks.com",
   "bin": {
@@ -10,8 +10,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "MITC",
+  "author": "WebTeks",
+  "license": "MIT",
   "dependencies": {
     "agentkeepalive": "^3.1.0",
     "ansi-escape-sequences": "^3.0.0",
@@ -26,5 +26,17 @@
     "jsondiffpatch": "^0.2.4",
     "jsonexport": "^1.5.2",
     "lodash": "^4.17.4"
-  }
+  },
+  "main": "none",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webteks/backendless_schema_tools.git"
+  },
+  "keywords": [
+    "backendless"
+  ],
+  "bugs": {
+    "url": "https://github.com/webteks/backendless_schema_tools/issues"
+  },
+  "homepage": "https://github.com/webteks/backendless_schema_tools#readme"
 }
