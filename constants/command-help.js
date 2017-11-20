@@ -1,5 +1,4 @@
 const ansi = require('ansi-escape-sequences');
-const header = require('../assets/ansi-header.js');
 
 /**
  * This is the help screen, default usage.

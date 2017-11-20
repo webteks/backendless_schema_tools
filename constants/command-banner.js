@@ -1,5 +1,4 @@
 const ansi = require('ansi-escape-sequences');
-const header = require('../assets/ansi-header.js');
 const chalk = require('chalk');
 const package = require('../package.json');
 /**
@@ -11,10 +10,6 @@ const package = require('../package.json');
   description: 'Prints nifty webteks banner.'
   */
 module.exports = [
-    {
-        content: chalk.green(ansi.format(header)),
-        raw: true
-    },
     {
         header: 'Backendless helper utility',
         group: ['header','_none'],

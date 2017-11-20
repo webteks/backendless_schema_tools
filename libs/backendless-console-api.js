@@ -23,13 +23,13 @@ class Backendless {
 
         /* Log method and URL for all requests */
         instance.interceptors.request.use(config => {
-            console.log(chalk.cyan(`Making ${chalk.bold(config.method.toUpperCase())} request to ${chalk.bold(config.url)}`));
+            //console.log(chalk.cyan(`Making ${chalk.bold(config.method.toUpperCase())} request to ${chalk.bold(config.url)}`));
             return config;
         });
 
         /* Log success or failure for all requests on response */
         instance.interceptors.response.use(res => {
-            console.log(chalk.bold.green(`...... SUCCESS`));
+            //console.log(chalk.bold.green(`...... SUCCESS`));
             return res;
         });
 

@@ -57,46 +57,15 @@ checkForArguments(options.compare)
         const rolesCompare = new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck);
         return rolesCompare.compareData();
     })
-    .then(rolesDiff => {
-        console.log('\n\n' + chalk.bold.underline.blue('App Roles Diffs: '));
-        console.log(rolesDiff);
-    })
+//    .then(rolesDiff => {
+//        console.log('\n\n' + chalk.bold.underline.blue('App Roles Diffs: '));
+//        console.log(rolesDiff);
+//    })
     .catch((err) => {
         console.log(util.inspect(err));
         console.log(chalk.bold.red(err));
     });
 
-// function getApps(appList, beVersion) {
-//     const versionAppList = _.filter(appList, {version: beVersion});
-//     if (versionAppList.length > 1) {
-//         return versionAppList;
-//     } else {
-//         throw new Error('There are not enough apps to compare for the version you provided!');
-//     }
-// }
-//
-// function getControlApp(appControl) {
-//     const controlApp = _.find(beDataState.apps, {appName: appControl});
-//     if (_.isEmpty(controlApp)) {
-//         throw new Error(`Control application name provided (${appControl}) was not found!`);
-//     } else {
-//         return controlApp
-//     }
-// }
-//
-// function getAppsToCheck(appsToCheck) {
-//     const appsToCheckFound = _.filter(beDataState.apps, app => _.includes(appsToCheck, app.appName));
-//     if (!_.isEmpty(appsToCheckFound)) {
-//         return appsToCheckFound;
-//     } else {
-//         const appNames = _.map(beDataState.apps, 'appName');
-//         throw new Error(`
-//             No apps to check were found!
-//             Apps provided: ${appsToCheck}
-//             Apps found: ${appNames}
-//         `);
-//     }
-// }
 
 function getHtmlTemplate(insertDiff) {
     return '<!DOCTYPE html><html><head><script type="text/javascript" src="build/jsondiffpatch.min.js"></script><script type="text/javascript" src="build/jsondiffpatch-formatters.min.js"></script><link rel="stylesheet" href="html.css" type="text/css" /></head>' +
