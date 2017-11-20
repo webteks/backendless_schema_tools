@@ -7,7 +7,8 @@ class TableCompare extends Comparator {
                 'columnId',
                 'relatedTable',
                 'size',
-                'tableId'
+                'tableId',
+                'dataSize'
             ],
             dataPath: 'tables'
         };
