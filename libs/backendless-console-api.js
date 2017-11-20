@@ -9,11 +9,11 @@ class Backendless {
         const appsContext = _.concat(controlAppName, appNamesToCheck);
 
         /* Determine backendless api version for use after login */
-        const apiVersionPath = beVersion.slice(0,1) === '3' ? '/3.x/console' : '/console';
+        const apiVersionPath = beVersion.slice(0,1) === '3' ? '/console' : '/console';
 
         /* Create axios request instance for http calls */
         const instance = axios.create({
-            baseURL: 'https://develop.backendless.com/',
+            baseURL: 'https://droneup.backendless.com/',
             timeout: timeout,
             headers: {
                 'content-type': 'application/json',
@@ -57,8 +57,8 @@ class Backendless {
     }
 
     /* Build app headers given appId and secretKey */
-    _getAppHeaders({id, secretKey}) {
-        return {headers:{'application-id': id,'secret-key': secretKey}};
+    _getAppHeaders({appId, secretKey}) {
+        return {headers:{'application-id': appId,'secret-key': secretKey}};
     }
 
     /* Build appversion api path provided currentVersionId */
@@ -81,18 +81,17 @@ class Backendless {
     /* Filter application list based on beVersion & which apps are actually needed for checks */
     filterAppList() {
         this.appList = _(this.appList)
-                        .filter({version: this.beVersion})
-                        .filter(app => _.includes(this.appsContext, app.name))
+                        .filter(app => _.includes(this.appsContext, app.appName))
                         .value();
         return;
     }
 
     /* Get app version ids. Regardless of appId used all apps are returned. */
     getAppVersions() {
-        const appId = this.appList[0].id;
+        const appId = this.appList[0].appId;
         return this.instance.get(`${this.apiVersionPath}/applications`, {headers: {'application-id': appId}})
             .then(({data: appVersions}) => {
-                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, {'appId': app.id})))
+                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, {'appId': app.appId})))
             });
     }
 
@@ -101,8 +100,8 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, i) => {
                 return this.instance.get(
-                    `${this.apiVersionPath}/application/${app.id}/secretkey/REST`,
-                    {headers: {'application-id': app.id}}
+                    `${this.apiVersionPath}/application/${app.appId}/secretkey/REST`,
+                    {headers: {'application-id': app.appId}}
                 )
                 .then(({data: secretKey}) => this.appList[i].secretKey = secretKey);
             })
