@@ -13,7 +13,7 @@ let agent = new Agent({
     freeSocketKeepAliveTimeout: 30000
 })
 let options = {
-    "hostname": "droneup.backendless.com",
+    "hostname": "api.backendless.com",
     "port": 80,
     "agent": agent,
     "headers": {

@@ -33,11 +33,13 @@ checkForArguments(options.compare)
             'application-control': appControl,
             'applications-to-check': appsToCheck,
             'reporting-directory': reportingDir,
-            'backendless-version': beVersion,
-            'timeout': timeout
+            'backendless-url': beURL,
+            'timeout': timeout,
+            'verbose': verboseOutput
         } = options.compare;
 
-        backendless = new BackendlessConsole(username, password, appControl, appsToCheck, reportingDir, beVersion,timeout);
+
+        backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir,timeout, verboseOutput);
 
         return backendless.getAppMeta();
     })
@@ -54,10 +56,7 @@ checkForArguments(options.compare)
     .then(() => {
         new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
     })
-//    .then(rolesDiff => {
-//        console.log('\n\n' + chalk.bold.underline.blue('App Roles Diffs: '));
-//        console.log(rolesDiff);
-//    })
+
     .catch((err) => {
         console.log(util.inspect(err));
         console.log(chalk.bold.red(err));

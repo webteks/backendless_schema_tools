@@ -26,6 +26,12 @@ module.exports = [
                 description: 'Required'
             },
             {
+              name: 'backendless-url',
+                alias: 'b',
+                typeLabel: '[underline]{\[\'api.backendless.com\'\]}',
+                description: 'Backendless URL Override'
+            },
+            {
                 name: 'application-control',
                 alias: 'r',
                 typeLabel: '[underline]{\[\'live (Reference) \'\]}',
@@ -38,22 +44,15 @@ module.exports = [
                 description: 'Required: Space seperated array of application names to compare ie: dev alpha'
             },
             {
-                name: 'report-directory',
-                alias: 'o',
-                typeLabel: '[underline]{\[\'Output directory\'\]}',
-                description: 'Default: ' + process.cwd()
-            },
-            {
-                name: 'backendless-version',
-                alias: 'v',
-                typeLabel: '[underline]{\[\'Version 3.1.0 or 4.0\'\]}',
-                description: 'Default: 3.1.0'
-            },
-            {
                 name: 'timeout',
                 alias: 't',
                 typeLabel: '[underline]{\[30000\]}',
                 description: 'Default: 30000'
+            },
+            {
+                name: 'verbose',
+                alias: 'v',
+                description: 'enables move verbose logging output'
             }
         ]
     }

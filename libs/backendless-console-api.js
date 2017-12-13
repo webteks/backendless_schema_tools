@@ -4,16 +4,14 @@ const chalk = require('chalk');
 const Promise = require('bluebird');
 
 class Backendless {
-    constructor(username,password,controlAppName,appNamesToCheck,reportingDir,beVersion,timeout) {
+    constructor(username,password,beURL,controlAppName,appNamesToCheck,reportingDir,timeout,verboseOutput) {
         /* Make a list of apps that are contextual to this check */
         const appsContext = _.concat(controlAppName, appNamesToCheck);
 
-        /* Determine backendless api version for use after login */
-        const apiVersionPath = beVersion.slice(0,1) === '3' ? '/console' : '/console';
 
         /* Create axios request instance for http calls */
         const instance = axios.create({
-            baseURL: 'https://droneup.backendless.com/',
+            baseURL: 'https://'+ beURL,
             timeout: timeout,
             headers: {
                 'content-type': 'application/json',
@@ -23,24 +21,26 @@ class Backendless {
 
         /* Log method and URL for all requests */
         instance.interceptors.request.use(config => {
-            //console.log(chalk.cyan(`Making ${chalk.bold(config.method.toUpperCase())} request to ${chalk.bold(config.url)}`));
+            if (verboseOutput) {
+                console.log(chalk.cyan(`Making ${chalk.bold(config.method.toUpperCase())} request to ${chalk.bold(config.url)}`));
+            };
             return config;
         });
 
         /* Log success or failure for all requests on response */
         instance.interceptors.response.use(res => {
-            //console.log(chalk.bold.green(`...... SUCCESS`));
+            if (verboseOutput) {
+                console.log(chalk.bold.green(`...... SUCCESS`));
+            }
             return res;
         });
 
         /* Assign input vars to object instance */
         _.assign(this, {
-            apiVersionPath,
             appsContext,
             appList: [],
             appsToCheck: [],
             appNamesToCheck,
-            beVersion,
             controlApp: {},
             controlAppName,
             instance,
@@ -63,7 +63,7 @@ class Backendless {
 
     /* Build appversion api path provided currentVersionId */
     _getAppVersionPath({currentVersionId}) {
-        return `${this.apiVersionPath}/appversion/${currentVersionId}`
+        return `/console/appversion/${currentVersionId}`
     };
 
     /* Authenticate user & add auth-key to header for future requests */
@@ -89,7 +89,7 @@ class Backendless {
     /* Get app version ids. Regardless of appId used all apps are returned. */
     getAppVersions() {
         const appId = this.appList[0].appId;
-        return this.instance.get(`${this.apiVersionPath}/applications`, {headers: {'application-id': appId}})
+        return this.instance.get(`/console/applications`, {headers: {'application-id': appId}})
             .then(({data: appVersions}) => {
                 this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, {'appId': app.appId})))
             });
@@ -100,7 +100,7 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, i) => {
                 return this.instance.get(
-                    `${this.apiVersionPath}/application/${app.appId}/secretkey/REST`,
+                    `/console/application/${app.appId}/secretkey/REST`,
                     {headers: {'application-id': app.appId}}
                 )
                 .then(({data: secretKey}) => this.appList[i].secretKey = secretKey);

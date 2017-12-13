@@ -8,7 +8,6 @@ const help = getUsage(helpFile);
 
 const checkArgs = Promise.method(options => {
     const argIsValid = optionKey => {
-        //process.stdout.write(chalk.white(`.....Verifying argument ${optionKey} exists - `));
         const argNotSet = !options[optionKey];
         const argEmpty = _.isEmpty(options[optionKey]);
         const argNotZero = _.gt(options[optionKey], 0);
@@ -25,8 +24,12 @@ const checkArgs = Promise.method(options => {
             }
         }
         else {
-            //console.log(chalk.bgYellow.green('Executing Backendless Database Schema comparison tool....'));
-            console.log(chalk.green(`.....Argument ${optionKey} is set as: ${options[optionKey]}!`));
+
+            if (options['verbose']){
+                if (!(optionKey === 'password' || optionKey === 'username')) {
+                    console.log(chalk.green(`.....Argument ${optionKey} is set as: ${options[optionKey]}!`));
+                };
+            };
             return true;
         }
     };
