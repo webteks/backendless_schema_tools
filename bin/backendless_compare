@@ -16,7 +16,9 @@ const usage = getUsage(sections);
 const banner = getUsage(ansi_banner);
 const options = commandLineArgs(optionDefinitions);
 const logHelper = require('../utils/log-helper');
-const { AppRolesCompare, ColumnCompare, RelationCompare, TableCompare, TableRolesCompare } = require('../libs/comparator');
+const { AppRolesCompare, ColumnCompare, RelationCompare, TableRolesCompare } = require('../libs/comparator');
+const compareTables = require('../libs/comparator/compare-tables')
+
 let backendless, beAppState;
 
 Promise.promisifyAll(fs);
@@ -47,15 +49,10 @@ checkForArguments(options.compare)
         beAppState = appData;
         return logHelper.writeAppDataToFile(_.flatMap(beAppState, app => app), 'tables');
     })
+    .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
+
     .then(() => {
-        const tableCompare = new TableCompare(beAppState.controlApp, beAppState.appsToCheck);
-        return tableCompare.compareData();
-    })
-    .then(tableConsoleDiffs => {
-        console.log('\n\n' + chalk.bold.underline.blue('Table Diffs (less roles): '));
-        console.log(tableConsoleDiffs);
-        const rolesCompare = new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck);
-        return rolesCompare.compareData();
+        new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
     })
 //    .then(rolesDiff => {
 //        console.log('\n\n' + chalk.bold.underline.blue('App Roles Diffs: '));
