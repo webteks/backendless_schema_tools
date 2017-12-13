@@ -10,8 +10,7 @@ const buildColumnsMap = (table, tablesMap) => {
 
     table.columns.forEach(column => {
         if (!SYSTEM_COLUMNS.includes(column.name)) {
-            const {dataType, dataSize} = column
-            const options = [dataType + (dataSize ? `(${dataSize})` : '')]
+            const options = [column.dataType]
 
             column.unique && (options.push('UQ'))
             column.required && (options.push('NN'))
