@@ -15,13 +15,10 @@ const util = require('util');
 const usage = getUsage(sections);
 const banner = getUsage(ansi_banner);
 const options = commandLineArgs(optionDefinitions);
-const logHelper = require('../utils/log-helper');
 const { AppRolesCompare, ColumnCompare, RelationCompare, TableRolesCompare } = require('../libs/comparator');
 const compareTables = require('../libs/comparator/compare-tables')
 
 let backendless, beAppState;
-
-Promise.promisifyAll(fs);
 
 console.log(banner)
 
@@ -49,7 +46,6 @@ checkForArguments(options.compare)
     .then(() => backendless.updateAppRefs())
     .then(appData => {
         beAppState = appData;
-        return logHelper.writeAppDataToFile(_.flatMap(beAppState, app => app), 'tables');
     })
     .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
 

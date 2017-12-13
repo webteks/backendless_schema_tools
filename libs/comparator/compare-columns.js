@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const chalk = require('chalk');
-const logHelper = require('../../utils/log-helper');
 const jsonDiff = require('jsondiffpatch');
 const Comparator = require('./comparator');
 
