@@ -2,6 +2,7 @@ module.exports = [
     { name: 'compare', alias: 'x', type: Boolean , group: 'compare' },
     { name: 'application-control', alias: 'r', type: String, group: 'compare',defaultValue: ''},
     { name: 'applications-to-check', alias: 'c', type: String, defaultValue: [], multiple: true, group: 'compare'},
+    { name: 'dump-application-control', alias: 'd', type: String, defaultValue: '', group: 'compare'},
     { name: 'username', alias: 'u', type: String, group: 'compare', defaultValue: ''},
     { name: 'password', alias: 'p', type: String, group: 'compare', defaultValue: ''},
     { name: 'backendless-url', alias: 'b', type: String, group: 'compare', defaultValue: 'api.backendless.com'},

@@ -1,48 +1,41 @@
 const _ = require('lodash');
-const Comparator = require('./comparator');
 const Table = require('cli-table');
-const chalk = require('chalk');
 
-const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
-
-const buildColumnsMap = (table, tablesMap) => {
+const buildColumnsMap = table => {
     const result = {}
 
     table.columns.forEach(column => {
-        if (!SYSTEM_COLUMNS.includes(column.name)) {
-            const options = [column.dataType]
+        const options = [column.dataType]
 
-            column.unique && (options.push('UQ'))
-            column.required && (options.push('NN'))
-            column.indexed && (options.push('IDX'))
-            column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
+        column.unique && (options.push('UQ'))
+        column.required && (options.push('NN'))
+        column.indexed && (options.push('IDX'))
+        column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
 
-            column.options = options
-            column.optionsString = options.join(', ')
+        column.options = options
+        column.optionsString = options.join(', ')
 
-            result[column.name] = column
-        }
+        result[column.name] = column
     })
 
     if (table.relations) {
         table.relations.forEach(relation => {
-            const relatedTable = tablesMap[relation.relatedTable]
             const column = {
-                dataType: relatedTable.name,
+                dataType: relation.toTableName,
                 required: relation.required,
                 unique: relation.unique,
                 autoLoad: relation.autoLoad,
                 relationType: relation.relationshipType
             }
 
-            const options = [`${relatedTable.name}(${relationTypeAlias(column.relationType)})`]
+            const options = [`${relation.name}(${relationTypeAlias(column.relationType)})`]
             column.unique && (options.push('UQ'))
             column.required && (options.push('NN'))
 
             column.options = options
             column.optionsString = options.join(', ')
 
-            result[relation.name] = column
+            result[relation.columnName] = column
         })
     }
 
@@ -57,7 +50,7 @@ const relationTypeAlias = relationType => relationType === 'ONE_TO_ONE' ? '1:1' 
 
 const printDifferences = (apps, appTablesMap) => {
     const table = new Table({
-        head: ['Table', 'Column', ...apps.map(app => app.appName)]
+        head: ['Table', 'Column', ...apps.map(app => app.name)]
     });
 
     Object.keys(appTablesMap).sort().forEach(tableName => {
@@ -65,7 +58,7 @@ const printDifferences = (apps, appTablesMap) => {
 
         const containsDifferences = columnName => {
             const versions = _.uniqBy(apps, app => {
-                const appColumn = columnsMap[columnName][app.appName]
+                const appColumn = columnsMap[columnName][app.name]
 
                 return appColumn ? appColumn.optionsString : ''
             })
@@ -84,7 +77,7 @@ const printDifferences = (apps, appTablesMap) => {
             columns.join('\n'),
             ...apps.map(app => {
                 const appColumnOptions = columnName => {
-                    const appColumn = columnsMap[columnName][app.appName]
+                    const appColumn = columnsMap[columnName][app.name]
 
                     return appColumn ? appColumn.optionsString : ''
                 }
@@ -102,16 +95,15 @@ module.exports = (apps, options) => {
 
     const addAppTablesToMap = app => {
         const tablesMapByName = _.keyBy(app.tables, 'name');
-        const tablesMapById = _.keyBy(app.tables, 'tableId');
 
         Object.keys(tablesMapByName).forEach(tableName => {
             appTablesMap[tableName] || (appTablesMap[tableName] = {});
 
-            const columnsMap = buildColumnsMap(tablesMapByName[tableName], tablesMapById)
+            const columnsMap = buildColumnsMap(tablesMapByName[tableName])
 
             Object.keys(columnsMap).forEach(columnName => {
                 appTablesMap[tableName][columnName] || (appTablesMap[tableName][columnName] = {})
-                appTablesMap[tableName][columnName][app.appName] = columnsMap[columnName]
+                appTablesMap[tableName][columnName][app.name] = columnsMap[columnName]
             })
         })
     }

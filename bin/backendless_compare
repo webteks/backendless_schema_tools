@@ -1,21 +1,16 @@
 #!/usr/bin/env node
-const _ = require('lodash');
 const BackendlessConsole = require('../libs/backendless-console-api.js');
 const chalk = require('chalk');
 const checkForArguments = require('../utils/checkArgs');
 const commandLineArgs = require('command-line-args');
-const fs = require('fs');
 const getUsage = require('command-line-usage');
-const Promise = require('bluebird');
-const Reporter = require('../libs/reporter.js');
+
 const ansi_banner = require('../constants/command-banner');
-const sections = require('../constants/command-help');
 const optionDefinitions = require('../constants/command-options');
 const util = require('util');
-const usage = getUsage(sections);
 const banner = getUsage(ansi_banner);
 const options = commandLineArgs(optionDefinitions);
-const { AppRolesCompare, ColumnCompare, RelationCompare, TableRolesCompare } = require('../libs/comparator');
+const { AppRolesCompare } = require('../libs/comparator');
 const compareTables = require('../libs/comparator/compare-tables')
 
 let backendless, beAppState;
@@ -29,6 +24,7 @@ checkForArguments(options.compare)
             'password': password,
             'application-control': appControl,
             'applications-to-check': appsToCheck,
+            'dump-application-control': dumpPath,
             'reporting-directory': reportingDir,
             'backendless-url': beURL,
             'timeout': timeout,
@@ -38,19 +34,18 @@ checkForArguments(options.compare)
 
         backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir,timeout, verboseOutput);
 
-        return backendless.getAppMeta();
-    })
-    .then(() => backendless.getAppDataTables())
-    .then(() => backendless.getAppRoles())
-    .then(() => backendless.getAppRolePermissions())
-    .then(() => backendless.updateAppRefs())
-    .then(appData => {
-        beAppState = appData;
-    })
-    .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
-
-    .then(() => {
-        new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
+        return backendless.getAppMeta()
+            .then(() => backendless.getAppDataTables())
+            .then(() => backendless.getAppRoles())
+            .then(() => backendless.getAppRolePermissions())
+            .then(() => backendless.updateAppRefs())
+            .then(appData => beAppState = appData)
+            .then(() => [beAppState.controlApp, ...beAppState.appsToCheck].forEach(BackendlessConsole.normalize))
+            .then(() => dumpPath && BackendlessConsole.saveDataToFile(beAppState.controlApp, dumpPath))
+            .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
+            .then(() => {
+                new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
+            })
     })
 
     .catch((err) => {
