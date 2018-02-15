@@ -1,21 +1,27 @@
 const _ = require('lodash');
+const Comparator = require('./comparator');
 const Table = require('cli-table');
+const chalk = require('chalk');
+
+const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
 
 const buildColumnsMap = table => {
     const result = {}
 
     table.columns.forEach(column => {
-        const options = [column.dataType]
+        if (!SYSTEM_COLUMNS.includes(column.name)) {
+            const options = [column.dataType]
 
-        column.unique && (options.push('UQ'))
-        column.required && (options.push('NN'))
-        column.indexed && (options.push('IDX'))
-        column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
+            column.unique && (options.push('UQ'))
+            column.required && (options.push('NN'))
+            column.indexed && (options.push('IDX'))
+            column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
 
-        column.options = options
-        column.optionsString = options.join(', ')
+            column.options = options
+            column.optionsString = options.join(', ')
 
-        result[column.name] = column
+            result[column.name] = column
+        }
     })
 
     if (table.relations) {
@@ -28,7 +34,7 @@ const buildColumnsMap = table => {
                 relationType: relation.relationshipType
             }
 
-            const options = [`${relation.name}(${relationTypeAlias(column.relationType)})`]
+            const options = [`${relation.toTableName}(${relationTypeAlias(column.relationType)})`]
             column.unique && (options.push('UQ'))
             column.required && (options.push('NN'))
 

@@ -63,7 +63,7 @@ class Backendless {
 
     /* Find app in appList */
     _findAppByName(appName) {
-        return _.find(this.appList, { 'appName': appName })
+        return _.find(this.appList, {'name': appName});
     }
 
     /* Build app headers given appId and secretKey */
@@ -72,8 +72,8 @@ class Backendless {
     }
 
     /* Build appversion api path provided currentVersionId */
-    _getAppVersionPath({ currentVersionId }) {
-        return `/console/appversion/${currentVersionId}`
+    _getAppVersionPath({id}) {
+        return `${id}/console`
     };
 
     /* Authenticate user & add auth-key to header for future requests */
@@ -96,7 +96,7 @@ class Backendless {
             .then(data => {
                 const app = JSON.parse(data)
 
-                app.appName = path
+                app.name = path
                 this.appList.push(app)
             })
             .then(() => this.verboseOutput && console.log(chalk.bold.green(`...... SUCCESS`)))
@@ -119,17 +119,18 @@ class Backendless {
     /* Filter application list based on beVersion & which apps are actually needed for checks */
     filterAppList() {
         this.appList = _(this.appList)
-            .filter(app => _.includes(this.appsContext, app.appName))
-            .value()
-        return
+            .filter(app => _.includes(this.appsContext, app.name))
+            .value();
+
+        return;
     }
 
     /* Get app version ids. Regardless of appId used all apps are returned. */
     getAppVersions() {
-        const appId = this.appList[0].appId
+        const appId = this.appList[0].id
         return this.instance.get(`/console/${appId}/versions`)
             .then(({ data: appVersions }) => {
-                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, { 'appId': app.appId })))
+                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, { 'id': app.id })))
             })
     }
 
@@ -137,13 +138,10 @@ class Backendless {
     getAppSecrets() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
-                if (!app.appId) return
+                if (!app.id) return
 
-                return this.instance.get(
-                    `/console/application/${app.appId}/secretkey/REST`,
-                    { headers: { 'application-id': app.appId } }
-                )
-                    .then(({ data: secretKey }) => this.appList[i].secretKey = secretKey)
+                return this.instance.get(`/${app.id}/console/appsettings`)
+                    .then(({data}) => this.appList[i].secretKey = data.devices.REST);
             })
         )
     }
@@ -154,11 +152,9 @@ class Backendless {
             _.map(this.appList, (app, i) => {
                 if (app.tables) return
 
-                return this.instance.get(
-                    `${this._getAppVersionPath(app)}/data/tables`,
-                    this._getAppHeaders(app)
-                )
-                    .then(({ data }) => this.sortAndSet(`${i}.tables`, data.tables))
+                return this.instance.get(`${this._getAppVersionPath(app)}/data/tables`)
+                    .then(({data}) => this.sortAndSet(`${i}.tables`, data.tables));
+
             })
         )
     }
@@ -167,9 +163,8 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, i) => {
                 if (app.roles) return
-
-                return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`, this._getAppHeaders(app))
-                    .then(({ data }) => this.sortByParamsAndSet(`${i}.roles`, data, ['rolename']))
+                return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`)
+                    .then(({data}) => this.sortAndSet(`${i}.roles`, data));
             })
         )
     }
@@ -181,10 +176,9 @@ class Backendless {
                     if (role.permissions) return
 
                     return this.instance.get(
-                        `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`,
-                        this._getAppHeaders(app)
-                    )
-                        .then(({ data }) => this.sortByParamsAndSet(`${appIndex}.roles.${roleIndex}.permissions`, data, ['type', 'operation']))
+                        `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`)
+                        .then(({data}) => this.sortByParamsAndSet(`${appIndex}.roles.${roleIndex}.permissions`, data, ['type', 'operation']));
+
                 })
             ))
         )
@@ -227,8 +221,6 @@ class Backendless {
             .then(() => this.loadFromFileIfNeeded())
             .then(() => this.getAppList())
             .then(() => this.filterAppList())
-            // .then(() => this.getAppVersions())
-            .then(() => this.getAppSecrets())
             .then(() => this.updateAppRefs())
     }
 
@@ -255,25 +247,13 @@ class Backendless {
         delete app.appName
         delete app.appId
 
-        const normalizeRelations = (relation, tablesMap) => {
-            relation.toTableName = relation.toTableName || tablesMap[relation.relatedTable].name
-            relation.columnName = relation.columnName || relation.name
-
-            delete relation.relatedTable
-            delete relation.name
-        }
-
-        const normalizeTable = (table, tablesMap) => {
+        const normalizeTable = table => {
             table.columns = table.columns
                 .filter(column => !SYSTEM_COLUMNS.includes(column.name))
-
-            table.relations && table.relations.forEach(r => normalizeRelations(r, tablesMap))
         }
 
         if (app.tables) {
-            const tablesMapById = _.keyBy(app.tables, 'tableId')
-
-            app.tables.forEach(table => normalizeTable(table, tablesMapById))
+            app.tables.forEach(normalizeTable)
         }
 
         return app
