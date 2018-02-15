@@ -41,7 +41,7 @@ checkForArguments(options.compare)
             .then(() => backendless.updateAppRefs())
             .then(appData => beAppState = appData)
             .then(() => [beAppState.controlApp, ...beAppState.appsToCheck].forEach(BackendlessConsole.normalize))
-            .then(() => dumpPath && BackendlessConsole.saveDataToFile(beAppState.controlApp, dumpPath))
+            .then(() => dumpPath && BackendlessConsole.saveDataToFile(beAppState.controlApp, dumpPath, verboseOutput))
             .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
             .then(() => {
                 new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();

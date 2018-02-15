@@ -35,13 +35,13 @@ module.exports = [
                 name       : 'application-control',
                 alias      : 'r',
                 typeLabel  : '[underline]{\[\'live (Reference) \'\]}',
-                description: 'Required: Reference Backendless Application name'
+                description: 'Required: Reference Backendless Application name or path to dump-file'
             },
             {
                 name       : 'applications-to-check',
                 alias      : 'c',
                 typeLabel  : '[underline]{\[\'dev (Comparison)\'\]}',
-                description: 'Required: Space seperated array of application names to compare ie: dev alpha'
+                description: 'Required: Space seperated array of application names or paths to compare ie: dev alpha'
             },
             {
                 name       : 'dump-application-control',

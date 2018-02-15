@@ -3,7 +3,11 @@ const axios = require('axios')
 const chalk = require('chalk')
 const Promise = require('bluebird')
 const { promisify } = require('util')
-const fs = require('fs')
+let { readFile, writeFile, stat } = require('fs')
+
+writeFile = promisify(writeFile)
+readFile = promisify(readFile)
+stat = promisify(stat)
 
 const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
 
@@ -52,9 +56,9 @@ class Backendless {
             instance,
             password,
             reportingDir,
-            username
+            username,
+            verboseOutput
         })
-
     }
 
     /* Find app in appList */
@@ -78,10 +82,38 @@ class Backendless {
             .then(res => this.instance.defaults.headers['auth-key'] = res.headers['auth-key'])
     }
 
+    checkIfPath(appName) {
+        return stat(appName)
+            .then(stats => stats.isFile())
+            .catch(() => false)
+    }
+
+    /* Get application from dump-file */
+    getApp(path) {
+        this.verboseOutput && console.log(chalk.cyan(`Loading from file ${chalk.bold(path)}`))
+
+        return readFile(path)
+            .then(data => {
+                const app = JSON.parse(data)
+
+                app.appName = path
+                this.appList.push(app)
+            })
+            .then(() => this.verboseOutput && console.log(chalk.bold.green(`...... SUCCESS`)))
+            .catch(e => console.log(path, e.message))
+    }
+
+    loadFromFileIfNeeded() {
+        return Promise.all(this.appsContext.map(appName => {
+            return this.checkIfPath(appName)
+                .then(isPath => isPath && this.getApp(appName))
+        }))
+    }
+
     /* Get application list */
     getAppList() {
         return this.instance.get('/console/applications')
-            .then(({ data: appList }) => this.appList = appList)
+            .then(({ data: appList }) => this.appList.push(...appList))
     }
 
     /* Filter application list based on beVersion & which apps are actually needed for checks */
@@ -105,6 +137,8 @@ class Backendless {
     getAppSecrets() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
+                if (!app.appId) return
+
                 return this.instance.get(
                     `/console/application/${app.appId}/secretkey/REST`,
                     { headers: { 'application-id': app.appId } }
@@ -118,6 +152,8 @@ class Backendless {
     getAppDataTables() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
+                if (app.tables) return
+
                 return this.instance.get(
                     `${this._getAppVersionPath(app)}/data/tables`,
                     this._getAppHeaders(app)
@@ -130,6 +166,8 @@ class Backendless {
     getAppRoles() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
+                if (app.roles) return
+
                 return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`, this._getAppHeaders(app))
                     .then(({ data }) => this.sortByParamsAndSet(`${i}.roles`, data, ['rolename']))
             })
@@ -140,6 +178,8 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, appIndex) => Promise.all(
                 _.map(app.roles, (role, roleIndex) => {
+                    if (role.permissions) return
+
                     return this.instance.get(
                         `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`,
                         this._getAppHeaders(app)
@@ -184,6 +224,7 @@ class Backendless {
     /* Get main app meta data and return */
     getAppMeta() {
         return this.login()
+            .then(() => this.loadFromFileIfNeeded())
             .then(() => this.getAppList())
             .then(() => this.filterAppList())
             // .then(() => this.getAppVersions())
@@ -215,10 +256,8 @@ class Backendless {
         delete app.appId
 
         const normalizeRelations = (relation, tablesMap) => {
-            const relatedTable = tablesMap[relation.relatedTable]
-
-            relation.toTableName = relatedTable.name
-            relation.columnName = relation.name
+            relation.toTableName = relation.toTableName || tablesMap[relation.relatedTable].name
+            relation.columnName = relation.columnName || relation.name
 
             delete relation.relatedTable
             delete relation.name
@@ -240,11 +279,9 @@ class Backendless {
         return app
     }
 
-    static saveDataToFile(data, path) {
-        const writeFile = promisify(fs.writeFile)
-
+    static saveDataToFile(data, path, verbose) {
         return writeFile(path, JSON.stringify(data))
-            .then(() => console.log(chalk.bold.green(`...... Schema is saved`)))
+            .then(() => verbose && console.log(chalk.bold.green(`...... Schema is saved`)))
             .catch(e => console.error(e))
     }
 }
