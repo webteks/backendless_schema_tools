@@ -53,7 +53,7 @@ class Backendless {
 
     /* Find app in appList */
     _findAppByName(appName) {
-        return _.find(this.appList, {'appName': appName});
+        return _.find(this.appList, {'name': appName});
     }
 
     /* Build app headers given appId and secretKey */
@@ -62,8 +62,8 @@ class Backendless {
     }
 
     /* Build appversion api path provided currentVersionId */
-    _getAppVersionPath({currentVersionId}) {
-        return `/console/appversion/${currentVersionId}`
+    _getAppVersionPath({id}) {
+        return `${id}/console`
     };
 
     /* Authenticate user & add auth-key to header for future requests */
@@ -81,17 +81,17 @@ class Backendless {
     /* Filter application list based on beVersion & which apps are actually needed for checks */
     filterAppList() {
         this.appList = _(this.appList)
-                        .filter(app => _.includes(this.appsContext, app.appName))
+                        .filter(app => _.includes(this.appsContext, app.name))
                         .value();
         return;
     }
 
     /* Get app version ids. Regardless of appId used all apps are returned. */
     getAppVersions() {
-        const appId = this.appList[0].appId;
+        const appId = this.appList[0].id;
         return this.instance.get(`/console/applications`, {headers: {'application-id': appId}})
             .then(({data: appVersions}) => {
-                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, {'appId': app.appId})))
+                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, {'appId': app.id})))
             });
     }
 
@@ -99,11 +99,8 @@ class Backendless {
     getAppSecrets() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
-                return this.instance.get(
-                    `/console/application/${app.appId}/secretkey/REST`,
-                    {headers: {'application-id': app.appId}}
-                )
-                .then(({data: secretKey}) => this.appList[i].secretKey = secretKey);
+                return this.instance.get(`/${app.id}/console/appsettings`)
+                .then(({data}) => this.appList[i].secretKey = data.devices.REST);
             })
         );
     }
@@ -113,9 +110,7 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, i) => {
                 return this.instance.get(
-                    `${this._getAppVersionPath(app)}/data/tables`,
-                    this._getAppHeaders(app)
-                )
+                    `${this._getAppVersionPath(app)}/data/tables`)
                 .then(({data}) => this.sortAndSet(`${i}.tables`, data.tables));
             })
         );
@@ -124,7 +119,7 @@ class Backendless {
     getAppRoles() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
-                return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`, this._getAppHeaders(app))
+                return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`)
                     .then(({data}) => this.sortAndSet(`${i}.roles`, data));
             })
         );
@@ -135,9 +130,7 @@ class Backendless {
             _.map(this.appList, (app, appIndex) => Promise.all(
                 _.map(app.roles, (role, roleIndex) => {
                     return this.instance.get(
-                        `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`,
-                        this._getAppHeaders(app)
-                    )
+                        `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`)
                     .then(({data}) => this.sortByParams(`${appIndex}.roles.${roleIndex}.permissions`, data, ['type', 'operation']));
                 })
             ))
@@ -194,7 +187,7 @@ class Backendless {
 
     /* sort and set data collections returned by API */
     sortAndSet(path, data) {
-        _.set(this.appList, path, _.sortBy(data, 'name'));
+        _.set(this.appList, path, _.sortBy(data, 'rolename'));
     }
 
     sortByParams(path, data, params) {
