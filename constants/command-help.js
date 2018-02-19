@@ -59,6 +59,11 @@ module.exports = [
                 name       : 'verbose',
                 alias      : 'v',
                 description: 'enables move verbose logging output'
+            },
+            {
+                name       : 'monitor',
+                alias      : 'm',
+                description: 'enables monitor: return 0 if schemas are dentical, or 1 - if not'
             }
         ]
     }
