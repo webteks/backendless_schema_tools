@@ -54,6 +54,28 @@ const buildColumnsMap = table => {
 
 const relationTypeAlias = relationType => relationType === 'ONE_TO_ONE' ? '1:1' : '1:N'
 
+const containsDifferences = (apps, columnName, columnsMap) => {
+    const versions = _.uniqBy(apps, app => {
+        const appColumn = columnsMap[columnName][app.name]
+
+        return appColumn ? appColumn.optionsString : ''
+    })
+
+    return versions.length > 1
+}
+
+const hasDifferences = (apps, appTablesMap) => {
+   for (let tableName of Object.keys(appTablesMap)) {
+       const columnsMap = appTablesMap[tableName]
+
+       for (let columnName of Object.keys(columnsMap)) {
+           if (containsDifferences(apps, columnName, columnsMap)) {
+               return true
+           }
+       }
+   }
+}
+
 const printDifferences = (apps, appTablesMap) => {
     const table = new Table({
         head: ['Table', 'Column', ...apps.map(app => app.name)]
@@ -62,17 +84,8 @@ const printDifferences = (apps, appTablesMap) => {
     Object.keys(appTablesMap).sort().forEach(tableName => {
         const columnsMap = appTablesMap[tableName]
 
-        const containsDifferences = columnName => {
-            const versions = _.uniqBy(apps, app => {
-                const appColumn = columnsMap[columnName][app.name]
-
-                return appColumn ? appColumn.optionsString : ''
-            })
-
-            return versions.length > 1
-        }
-
-        const columns = Object.keys(columnsMap).filter(containsDifferences)
+        const columns = Object.keys(columnsMap)
+            .filter(columnName => containsDifferences(apps, columnName, columnsMap))
 
         if (columns.length === 0) {
             return
@@ -97,6 +110,7 @@ const printDifferences = (apps, appTablesMap) => {
 }
 
 module.exports = (apps, options) => {
+    const {monitorMode} = options
     const appTablesMap = {}
 
     const addAppTablesToMap = app => {
@@ -116,5 +130,9 @@ module.exports = (apps, options) => {
 
     apps.forEach(addAppTablesToMap);
 
-    printDifferences(apps, appTablesMap);
+    if (monitorMode) {
+        hasDifferences(apps, appTablesMap) && process.exit(1)
+    } else {
+        printDifferences(apps, appTablesMap);
+    }
 };
