@@ -15,7 +15,6 @@ const compareTables = require('../libs/comparator/compare-tables')
 
 let backendless, beAppState;
 
-console.log(banner)
 
 checkForArguments(options.compare)
     .then(() => {
@@ -28,9 +27,11 @@ checkForArguments(options.compare)
             'reporting-directory': reportingDir,
             'backendless-url': beURL,
             'timeout': timeout,
-            'verbose': verboseOutput
+            'verbose': verboseOutput,
+            'monitor': monitorMode
         } = options.compare;
 
+        !monitorMode && console.log(banner)
 
         backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir,timeout, verboseOutput);
 
@@ -42,10 +43,11 @@ checkForArguments(options.compare)
             .then(appData => beAppState = appData)
             .then(() => [beAppState.controlApp, ...beAppState.appsToCheck].forEach(BackendlessConsole.normalize))
             .then(() => dumpPath && BackendlessConsole.saveDataToFile(beAppState.controlApp, dumpPath, verboseOutput))
-            .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
+            .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck], {monitorMode}))
             .then(() => {
                 new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
             })
+            .catch(() => monitorMode && process.exit(1))
     })
 
     .catch((err) => {

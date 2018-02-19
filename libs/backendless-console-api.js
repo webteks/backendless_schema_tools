@@ -96,7 +96,7 @@ class Backendless {
             .then(data => {
                 const app = JSON.parse(data)
 
-                app.appName = path
+                app.name = app.appName = path
                 this.appList.push(app)
             })
             .then(() => this.verboseOutput && console.log(chalk.bold.green(`...... SUCCESS`)))
