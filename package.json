@@ -1,6 +1,6 @@
 {
   "name": "@webteks/backendless_schema_tools",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "To install and test this utility  * git clone git@github.com:webteks/backendless_schema_tools.git  * cd backendless_schema_tools  * npm install -g",
   "url": "https://github.com/webteks/backendless_schema_tools/issues",
   "email": "support@webteks.com",
