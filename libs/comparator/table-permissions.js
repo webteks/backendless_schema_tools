@@ -66,7 +66,7 @@ module.exports = apps => {
         app.tables.forEach(table => {
             const tableMap = map[table.name] || (map[table.name] = {});
 
-            table.roles.forEach(appRole => {
+            (table.roles || []).forEach(appRole => {
                 _.sortBy(appRole.permissions, 'operation').forEach(({ operation, access }) => {
                     const operationMap = tableMap[operation] || (tableMap[operation] = {})
                     operationMap[appRole.name] || (operationMap[appRole.name] = {})

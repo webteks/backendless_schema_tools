@@ -2,8 +2,8 @@ const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
 const Promise = require('bluebird')
-const { promisify } = require('util')
-let { readFile, writeFile, stat } = require('fs')
+const {promisify} = require('util')
+let {readFile, writeFile, stat} = require('fs')
 
 writeFile = promisify(writeFile)
 readFile = promisify(readFile)
@@ -11,6 +11,7 @@ stat = promisify(stat)
 
 const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
 
+const filterLive = apps => apps.filter(app => !app.fromJSON)
 
 class Backendless {
     constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput) {
@@ -26,7 +27,7 @@ class Backendless {
             baseURL: beURL,
             timeout: timeout,
             headers: {
-                'content-type'    : 'application/json',
+                'content-type': 'application/json',
                 'application-type': 'REST'
             }
         })
@@ -51,10 +52,10 @@ class Backendless {
         /* Assign input vars to object instance */
         _.assign(this, {
             appsContext,
-            appList    : [],
+            appList: [],
             appsToCheck: [],
             appNamesToCheck,
-            controlApp : {},
+            controlApp: {},
             controlAppName,
             instance,
             password,
@@ -64,24 +65,19 @@ class Backendless {
         })
     }
 
-    /* Find app in appList */
-    _findAppByName(appName) {
-        return _.find(this.appList, {'name': appName});
-    }
-
     /* Build app headers given appId and secretKey */
-    _getAppHeaders({ appId, secretKey }) {
-        return { headers: { 'application-id': appId, 'secret-key': secretKey } }
+    _getAppHeaders({appId, secretKey}) {
+        return {headers: {'application-id': appId, 'secret-key': secretKey}}
     }
 
     /* Build appversion api path provided currentVersionId */
-    _getAppVersionPath({id}) {
-        return `${id}/console`
+    _getConsoleApiUrl(app) {
+        return `${app.id}/console`
     };
 
     /* Authenticate user & add auth-key to header for future requests */
     login() {
-        return this.instance.post('/console/home/login', { 'login': this.username, 'password': this.password })
+        return this.instance.post('/console/home/login', {'login': this.username, 'password': this.password})
             .then(res => this.instance.defaults.headers['auth-key'] = res.headers['auth-key'])
     }
 
@@ -91,8 +87,7 @@ class Backendless {
             .catch(() => false)
     }
 
-    /* Get application from dump-file */
-    getApp(path) {
+    getAppFromFile(path) {
         this.verboseOutput && console.log(chalk.cyan(`Loading from file ${chalk.bold(path)}`))
 
         return readFile(path)
@@ -100,6 +95,8 @@ class Backendless {
                 const app = JSON.parse(data)
 
                 app.name = path
+                app.fromJSON = true
+
                 this.appList.push(app)
             })
             .then(() => this.verboseOutput && console.log(chalk.bold.green(`...... SUCCESS`)))
@@ -109,14 +106,13 @@ class Backendless {
     loadFromFileIfNeeded() {
         return Promise.all(this.appsContext.map(appName => {
             return this.checkIfPath(appName)
-                .then(isPath => isPath && this.getApp(appName))
+                .then(isPath => isPath && this.getAppFromFile(appName))
         }))
     }
 
-    /* Get application list */
     getAppList() {
         return this.instance.get('/console/applications')
-            .then(({ data: appList }) => this.appList.push(...appList))
+            .then(({data: appList}) => this.appList.push(...appList))
     }
 
     /* Filter application list based on beVersion & which apps are actually needed for checks */
@@ -124,64 +120,49 @@ class Backendless {
         this.appList = _(this.appList)
             .filter(app => _.includes(this.appsContext, app.name))
             .value();
-
-        return;
     }
 
-    /* Get app version ids. Regardless of appId used all apps are returned. */
-    getAppVersions() {
-        const appId = this.appList[0].id
-        return this.instance.get(`/console/${appId}/versions`)
-            .then(({ data: appVersions }) => {
-                this.appList = _.map(this.appList, app => _.assign(app, _.find(appVersions, { 'id': app.id })))
-            })
-    }
-
-    /* Get app secrets */
     getAppSecrets() {
         return Promise.all(
-            _.map(this.appList, (app, i) => {
-                if (!app.id) return
-
-                return this.instance.get(`/${app.id}/console/appsettings`)
-                    .then(({data}) => this.appList[i].secretKey = data.devices.REST);
+            this.appList.map(app => {
+                if (app.id) {
+                    return this.instance.get(`/${app.id}/console/appsettings`)
+                        .then(({data}) => app.secretKey = data.devices.REST);
+                }
             })
         )
     }
 
-    /* Get app data tables */
     getAppDataTables() {
+        const normalizeTable = table => {
+            table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name));
+
+            return table;
+        }
+
         return Promise.all(
-            _.map(this.appList, (app, i) => {
-                if (app.tables) return
-
-                return this.instance.get(`${this._getAppVersionPath(app)}/data/tables`)
-                    .then(({data}) => this.sortAndSet(`${i}.tables`, data.tables));
-
+            filterLive(this.appList).map(app => {
+                return this.instance.get(`${this._getConsoleApiUrl(app)}/data/tables`)
+                    .then(({data}) => app.tables = _.sortBy(data.tables, 'name').map(normalizeTable));
             })
         )
     }
 
     getAppRoles() {
         return Promise.all(
-            _.map(this.appList, (app, i) => {
-                if (app.roles) return
-                return this.instance.get(`${this._getAppVersionPath(app)}/security/roles`)
-                    .then(({data}) => this.sortAndSet(`${i}.roles`, data));
+            filterLive(this.appList).map(app => {
+                return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles`)
+                    .then(({data}) => app.roles = data);
             })
         )
     }
 
     getAppRolePermissions() {
         return Promise.all(
-            _.map(this.appList, (app, appIndex) => Promise.all(
-                _.map(app.roles, (role, roleIndex) => {
-                    if (role.permissions) return
-
-                    return this.instance.get(
-                        `${this._getAppVersionPath(app)}/security/roles/permissions/${role.roleId}`)
-                        .then(({data}) => this.sortByParamsAndSet(`${appIndex}.roles.${roleIndex}.permissions`, data, ['type', 'operation']));
-
+            filterLive(this.appList).map(app => Promise.all(
+                app.roles.map(role => {
+                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
+                        .then(({data}) => role.permissions = data);
                 })
             ))
         )
@@ -189,30 +170,32 @@ class Backendless {
 
     getAppUsers() {
         return Promise.all(
-            _.map(this.appList, (app, i) => {
-                return this.instance.get(`${this._getAppVersionPath(app)}/security/users`)
-                    .then(({ data }) => this.sortAndSet(`${i}.users`, data))
+            filterLive(this.appList).map(app => {
+                return this.instance.get(`${this._getConsoleApiUrl(app)}/security/users`)
+                    .then(({data}) => app.users = data)
             })
         )
     }
 
     getAppDataTableUserPermissions() {
         return Promise.all(
-            _.map(this.appList, (app, appIndex) => Promise.all(
-                _.map(this.appList[appIndex].tables, (table, tableIndex) => {
-                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/users`)
-                        .then(({ data }) => this.appList[appIndex].tables[tableIndex].users = data.data)
-                })
-            ))
+            filterLive(this.appList).map(app => {
+                return Promise.all(
+                    app.tables.map(table => {
+                        return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/users`)
+                            .then(({data}) => table.users = data.data)
+                    })
+                )
+            })
         )
     }
 
     getAppDataTableRolePermissions() {
         return Promise.all(
-            _.map(this.appList, (app, appIndex) => Promise.all(
-                _.map(this.appList[appIndex].tables, (table, tableIndex) => {
-                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/roles`)
-                        .then(({ data }) => this.sortByParamsAndSet(`${appIndex}.tables.${tableIndex}.roles`, data, ['operation']))
+            filterLive(this.appList).map(app => Promise.all(
+                app.tables.map(table => {
+                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
+                        .then(({data}) => table.roles = data)
                 })
             ))
         )
@@ -224,14 +207,27 @@ class Backendless {
             .then(() => this.loadFromFileIfNeeded())
             .then(() => this.getAppList())
             .then(() => this.filterAppList())
-            .then(() => this.updateAppRefs())
+            .then(() => this.normalize())
+    }
+
+    normalize() {
+        this.appList.forEach(app => {
+            app.name = app.name || app.appName
+            app.id = app.id || app.appId
+
+            delete app.appName
+            delete app.appId
+        })
     }
 
     /* Set controlApp & appsToCheck from appList and return copy of data */
-    updateAppRefs() {
-        this.controlApp = this._findAppByName(this.controlAppName)
-        this.appsToCheck = _.map(this.appNamesToCheck, appName => {
-            const app = this._findAppByName(appName)
+    getApps() {
+        const findAppByName = appName => _.find(this.appList, {'name': appName});
+
+        const controlApp = findAppByName(this.controlAppName)
+
+        const appsToCheck = this.appNamesToCheck.map(appName => {
+            const app = findAppByName(appName)
 
             if (!app) {
                 throw new Error(`${appName} app does not exist`);
@@ -239,35 +235,8 @@ class Backendless {
 
             return app;
         })
-        return _.pick(this, 'controlApp', 'appsToCheck')
-    }
 
-    /* sort and set data collections returned by API */
-    sortAndSet(path, data) {
-        return _.set(this.appList, path, _.sortBy(data, 'name'))
-    }
-
-    sortByParamsAndSet(path, data, params) {
-        return _.set(this.appList, path, _.sortBy(data, params))
-    }
-
-    static normalize(app) {
-        app.name = app.name || app.appName
-        app.id = app.id || app.appId
-
-        delete app.appName
-        delete app.appId
-
-        const normalizeTable = table => {
-            table.columns = table.columns
-                .filter(column => !SYSTEM_COLUMNS.includes(column.name))
-        }
-
-        if (app.tables) {
-            app.tables.forEach(normalizeTable)
-        }
-
-        return app
+        return [controlApp, ...appsToCheck]
     }
 
     static saveDataToFile(data, path, verbose) {

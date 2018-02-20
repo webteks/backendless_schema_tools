@@ -44,7 +44,6 @@ const buildColumnsMap = table => {
         })
     }
 
-    console.log(result)
     return result
 }
 
