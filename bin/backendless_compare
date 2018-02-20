@@ -47,12 +47,13 @@ checkForArguments(options.compare)
             .then(() => {
                 new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
             })
-            .catch(() => monitorMode && process.exit(1))
     })
 
     .catch((err) => {
         console.log(util.inspect(err));
         console.log(chalk.bold.red(err));
+
+        process.exit(1)
     });
 
 
