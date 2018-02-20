@@ -17,10 +17,13 @@ class Backendless {
         /* Make a list of apps that are contextual to this check */
         const appsContext = _.concat(controlAppName, appNamesToCheck)
 
+        if (!beURL.startsWith('http')) {
+            beURL = 'https://' + beURL
+        }
 
         /* Create axios request instance for http calls */
         const instance = axios.create({
-            baseURL: 'https://' + beURL,
+            baseURL: beURL,
             timeout: timeout,
             headers: {
                 'content-type'    : 'application/json',
@@ -187,7 +190,7 @@ class Backendless {
     getAppUsers() {
         return Promise.all(
             _.map(this.appList, (app, i) => {
-                return this.instance.get(`${this._getAppVersionPath(app)}/security/users`, this._getAppHeaders(app))
+                return this.instance.get(`${this._getAppVersionPath(app)}/security/users`)
                     .then(({ data }) => this.sortAndSet(`${i}.users`, data))
             })
         )
@@ -197,7 +200,7 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, appIndex) => Promise.all(
                 _.map(this.appList[appIndex].tables, (table, tableIndex) => {
-                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/users`, this._getAppHeaders(app))
+                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/users`)
                         .then(({ data }) => this.appList[appIndex].tables[tableIndex].users = data.data)
                 })
             ))
@@ -208,7 +211,7 @@ class Backendless {
         return Promise.all(
             _.map(this.appList, (app, appIndex) => Promise.all(
                 _.map(this.appList[appIndex].tables, (table, tableIndex) => {
-                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/roles`, this._getAppHeaders(app))
+                    return this.instance.get(`${this._getAppVersionPath(app)}/security/data/${table.tableId}/roles`)
                         .then(({ data }) => this.sortByParamsAndSet(`${appIndex}.tables.${tableIndex}.roles`, data, ['operation']))
                 })
             ))
@@ -227,7 +230,15 @@ class Backendless {
     /* Set controlApp & appsToCheck from appList and return copy of data */
     updateAppRefs() {
         this.controlApp = this._findAppByName(this.controlAppName)
-        this.appsToCheck = _.map(this.appNamesToCheck, appName => this._findAppByName(appName))
+        this.appsToCheck = _.map(this.appNamesToCheck, appName => {
+            const app = this._findAppByName(appName)
+
+            if (!app) {
+                throw new Error(`${appName} app does not exist`);
+            }
+
+            return app;
+        })
         return _.pick(this, 'controlApp', 'appsToCheck')
     }
 

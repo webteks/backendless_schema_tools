@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const Comparator = require('./comparator');
 const Table = require('cli-table');
 const chalk = require('chalk');
 
@@ -45,10 +44,7 @@ const buildColumnsMap = table => {
         })
     }
 
-    if (table.roles) {
-        console.log(table)
-    }
-
+    console.log(result)
     return result
 }
 
@@ -64,22 +60,12 @@ const containsDifferences = (apps, columnName, columnsMap) => {
     return versions.length > 1
 }
 
-const hasDifferences = (apps, appTablesMap) => {
-   for (let tableName of Object.keys(appTablesMap)) {
-       const columnsMap = appTablesMap[tableName]
-
-       for (let columnName of Object.keys(columnsMap)) {
-           if (containsDifferences(apps, columnName, columnsMap)) {
-               return true
-           }
-       }
-   }
-}
-
 const printDifferences = (apps, appTablesMap) => {
     const table = new Table({
         head: ['Table', 'Column', ...apps.map(app => app.name)]
     });
+
+    let result = false;
 
     Object.keys(appTablesMap).sort().forEach(tableName => {
         const columnsMap = appTablesMap[tableName]
@@ -90,6 +76,8 @@ const printDifferences = (apps, appTablesMap) => {
         if (columns.length === 0) {
             return
         }
+
+        result = true;
 
         table.push([
             tableName,
@@ -106,14 +94,18 @@ const printDifferences = (apps, appTablesMap) => {
         ])
     })
 
-    console.log(table.toString())
+    if (result) {
+        console.log('\nTable schema:')
+        console.log(table.toString())
+    }
+
+    return result;
 }
 
-module.exports = (apps, options) => {
-    const {monitorMode} = options
+module.exports = apps => {
     const appTablesMap = {}
 
-    const addAppTablesToMap = app => {
+    apps.forEach(app => {
         const tablesMapByName = _.keyBy(app.tables, 'name');
 
         Object.keys(tablesMapByName).forEach(tableName => {
@@ -126,13 +118,7 @@ module.exports = (apps, options) => {
                 appTablesMap[tableName][columnName][app.name] = columnsMap[columnName]
             })
         })
-    }
+    });
 
-    apps.forEach(addAppTablesToMap);
-
-    if (monitorMode) {
-        hasDifferences(apps, appTablesMap) && process.exit(1)
-    } else {
-        printDifferences(apps, appTablesMap);
-    }
+    return printDifferences(apps, appTablesMap);
 };

@@ -10,11 +10,11 @@ const optionDefinitions = require('../constants/command-options');
 const util = require('util');
 const banner = getUsage(ansi_banner);
 const options = commandLineArgs(optionDefinitions);
-const { AppRolesCompare } = require('../libs/comparator');
-const compareTables = require('../libs/comparator/compare-tables')
+const compareTables = require('../libs/comparator/tables')
+const compareAppPermissions = require('../libs/comparator/app-permissions')
+const compareTablePermissions = require('../libs/comparator/table-permissions')
 
 let backendless, beAppState;
-
 
 checkForArguments(options.compare)
     .then(() => {
@@ -33,31 +33,38 @@ checkForArguments(options.compare)
 
         !monitorMode && console.log(banner)
 
-        backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir,timeout, verboseOutput);
+        backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput);
 
         return backendless.getAppMeta()
             .then(() => backendless.getAppDataTables())
             .then(() => backendless.getAppRoles())
             .then(() => backendless.getAppRolePermissions())
+            .then(() => backendless.getAppDataTableUserPermissions())
+            .then(() => backendless.getAppDataTableRolePermissions())
             .then(() => backendless.updateAppRefs())
             .then(appData => beAppState = appData)
             .then(() => [beAppState.controlApp, ...beAppState.appsToCheck].forEach(BackendlessConsole.normalize))
             .then(() => dumpPath && BackendlessConsole.saveDataToFile(beAppState.controlApp, dumpPath, verboseOutput))
-            .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck], {monitorMode}))
-            .then(() => {
-                new AppRolesCompare(beAppState.controlApp, beAppState.appsToCheck).compareData();
+            .then(() => compareTables([beAppState.controlApp, ...beAppState.appsToCheck]))
+            .then(hasDiferences => compareAppPermissions([beAppState.controlApp, ...beAppState.appsToCheck]) || hasDiferences)
+            .then(hasDiferences => compareTablePermissions([beAppState.controlApp, ...beAppState.appsToCheck]) || hasDiferences)
+            .then(hasDiferences => {
+                if (hasDiferences && monitorMode) {
+                    throw new Error('Differences detected')
+                }
             })
-            .catch(() => monitorMode && process.exit(1))
     })
 
     .catch((err) => {
         console.log(util.inspect(err));
         console.log(chalk.bold.red(err));
+
+        process.exit(1)
     });
 
 
 function getHtmlTemplate(insertDiff) {
     return '<!DOCTYPE html><html><head><script type="text/javascript" src="build/jsondiffpatch.min.js"></script><script type="text/javascript" src="build/jsondiffpatch-formatters.min.js"></script><link rel="stylesheet" href="html.css" type="text/css" /></head>' +
-    '<body><hr/><div id="visual"></div><hr/><script>document.getElementById(\'visual\').innerHTML = ' + JSON.stringify(insertDiff) +
-    ';</script></body></html>';
+        '<body><hr/><div id="visual"></div><hr/><script>document.getElementById(\'visual\').innerHTML = ' + JSON.stringify(insertDiff) +
+        ';</script></body></html>';
 }
