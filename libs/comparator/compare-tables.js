@@ -39,10 +39,6 @@ const buildColumnsMap = table => {
         })
     }
 
-    if (table.roles) {
-        console.log(table)
-    }
-
     return result
 }
 
