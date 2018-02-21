@@ -226,6 +226,10 @@ class Backendless {
 
         const controlApp = findAppByName(this.controlAppName)
 
+        if (!controlApp) {
+            throw new Error(`${this.controlAppName} app does not exist`);
+        }
+
         const appsToCheck = this.appNamesToCheck.map(appName => {
             const app = findAppByName(appName)
 
