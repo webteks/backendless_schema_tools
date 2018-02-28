@@ -1,12 +1,33 @@
-# backendless_schema_tools
+# Web Teks (Backendless) Schema Tools
 
 To install and test this utility
- * git clone git@github.com:webteks/backendless_schema_tools.git
- * cd backendless_schema_tools
- * npm install -g 
+ * Install this application globally ( npm install -g )
+ * Compare or monitor for changes based on an exported baseline schema
 
-Running above installs utility and a commandline tools.
 
-Execut backendless_compare for details.
+ Compare database schema of two or more Backendless Applications
+
+    -u, --username ['developer@company.com']                Required
+    
+    -p, --password ['developersPassowrd']                   Required
+    
+    -b, --backendless-url ['api.backendless.com']           Backendless URL Override
+    
+    -r, --application-control ['live (Reference) ']         Required: Reference Backendless Application
+                                                            name or path to dump-file
+                                                            
+    -c, --applications-to-check ['dev (Comparison)']        Required: Space seperated array of
+                                                            application names or paths to compare ie:
+                                                            dev alpha
+                                                            
+    -d, --dump-application-control [./path/file.json]       Optional: Path to dump-file
+    
+    -t, --timeout [30000]                                   Default: 30000
+    
+    -v, --verbose                                           enables move verbose logging output
+    
+    -m, --monitor                                           enables monitor: return 0 if schemas are
+                                                            identical, or 1 - if not or if there is an
+                                                            error
 
 Module for comparing applications details to a selected base.  Details to be compared; Schema tables table columns, column constraints, relationships, user and group permissions
