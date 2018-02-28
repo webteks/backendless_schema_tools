@@ -1,7 +1,6 @@
 const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
-const Promise = require('bluebird')
 const {promisify} = require('util')
 let {readFile, writeFile, stat} = require('fs')
 
@@ -198,6 +197,39 @@ class Backendless {
                         .then(({data}) => table.roles = data)
                 })
             ))
+        )
+    }
+
+    getAppServicesRolePermissions() {
+        return Promise.all(
+            filterLive(this.appList).map(async app => {
+
+                return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({data: services}) => {
+                    app.services = services
+
+                    return Promise.all(services.map(service => {
+                        return this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
+                            .then(({data: methods}) => {
+                                service.methods = methods
+
+                                const methodsMap = _.keyBy(methods, 'id')
+
+                                return this.instance.get(
+                                    `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
+                                    .then(({data}) => {
+                                        data.forEach(role => {
+                                            role.permissions.forEach(({operation, access}) => {
+                                                const method = methodsMap[operation]
+
+                                                method.roles = method.roles || {}
+                                                method.roles[role.name] = access
+                                            })
+                                        })
+                                    })
+                            })
+                    }))
+                })
+            })
         )
     }
 

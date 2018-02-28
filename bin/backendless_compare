@@ -11,8 +11,10 @@ const util = require('util');
 const banner = getUsage(ansi_banner);
 const options = commandLineArgs(optionDefinitions);
 const compareTables = require('../libs/comparator/tables')
+const compareTablesPermissions = require('../libs/comparator/tables-permissions')
+const compareEndpoints = require('../libs/comparator/endpoints')
+const compareEndpointsPermissions = require('../libs/comparator/endpoints-permissions')
 const compareAppPermissions = require('../libs/comparator/app-permissions')
-const compareTablePermissions = require('../libs/comparator/table-permissions')
 
 let backendless;
 
@@ -43,11 +45,14 @@ checkForArguments(options.compare)
             .then(() => backendless.getAppRolePermissions())
             .then(() => backendless.getAppDataTableUserPermissions())
             .then(() => backendless.getAppDataTableRolePermissions())
+            .then(() => backendless.getAppServicesRolePermissions())
             .then(() => apps = backendless.getApps())
             .then(() => dumpPath && BackendlessConsole.saveDataToFile(apps[0], dumpPath, verboseOutput))
             .then(() => compareTables(apps))
             .then(hasDiferences => compareAppPermissions(apps) || hasDiferences)
-            .then(hasDiferences => compareTablePermissions(apps) || hasDiferences)
+            .then(hasDiferences => compareTablesPermissions(apps) || hasDiferences)
+            .then(hasDiferences => compareEndpoints(apps) || hasDiferences)
+            .then(hasDiferences => compareEndpointsPermissions(apps) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && monitorMode) {
                     throw new Error('Differences detected')
@@ -61,10 +66,3 @@ checkForArguments(options.compare)
 
         process.exit(1)
     });
-
-
-function getHtmlTemplate(insertDiff) {
-    return '<!DOCTYPE html><html><head><script type="text/javascript" src="build/jsondiffpatch.min.js"></script><script type="text/javascript" src="build/jsondiffpatch-formatters.min.js"></script><link rel="stylesheet" href="html.css" type="text/css" /></head>' +
-        '<body><hr/><div id="visual"></div><hr/><script>document.getElementById(\'visual\').innerHTML = ' + JSON.stringify(insertDiff) +
-        ';</script></body></html>';
-}
