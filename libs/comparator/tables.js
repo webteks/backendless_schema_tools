@@ -23,26 +23,31 @@ const buildColumnsMap = table => {
         }
     })
 
-    if (table.relations) {
-        table.relations.forEach(relation => {
-            const column = {
-                dataType: relation.toTableName,
-                required: relation.required,
-                unique: relation.unique,
-                autoLoad: relation.autoLoad,
-                relationType: relation.relationshipType
-            }
+    const addTableRelations = relations => {
+        if (relations) {
+            relations.forEach(relation => {
+                const column = {
+                    dataType: relation.toTableName,
+                    required: relation.required,
+                    unique: relation.unique,
+                    autoLoad: relation.autoLoad,
+                    relationType: relation.relationshipType
+                }
 
-            const options = [`${relation.toTableName}(${relationTypeAlias(column.relationType)})`]
-            column.unique && (options.push('UQ'))
-            column.required && (options.push('NN'))
+                const options = [`${relation.toTableName}(${relationTypeAlias(column.relationType)})`]
+                column.unique && (options.push('UQ'))
+                column.required && (options.push('NN'))
 
-            column.options = options
-            column.optionsString = options.join(', ')
+                column.options = options
+                column.optionsString = options.join(', ')
 
-            result[relation.columnName] = column
-        })
+                result[relation.columnName] = column
+            })
+        }
     }
+
+    addTableRelations(table.relations)
+    addTableRelations(table.geoRelations)
 
     return result
 }
