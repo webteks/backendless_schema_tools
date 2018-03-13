@@ -18,7 +18,8 @@ const compareAppPermissions = require('../libs/comparator/app-permissions')
 
 let backendless;
 
-checkForArguments(options.compare)
+Promise.resolve()
+    .then(() => checkForArguments(options.compare))
     .then(() => {
         const {
             'username': username,
@@ -43,7 +44,7 @@ checkForArguments(options.compare)
             .then(() => backendless.getAppDataTables())
             .then(() => backendless.getAppRoles())
             .then(() => backendless.getAppRolePermissions())
-            .then(() => backendless.getAppDataTableUserPermissions())
+//            .then(() => backendless.getAppDataTableUserPermissions())
             .then(() => backendless.getAppDataTableRolePermissions())
             .then(() => backendless.getAppServicesRolePermissions())
             .then(() => apps = backendless.getApps())

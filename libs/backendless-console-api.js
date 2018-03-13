@@ -133,6 +133,8 @@ class Backendless {
     }
 
     getAppDataTables() {
+        console.log('Fetching schema..')
+
         const normalizeTable = table => {
             table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name));
 
@@ -148,6 +150,8 @@ class Backendless {
     }
 
     getAppRoles() {
+        console.log('Fetching roles..')
+
         return Promise.all(
             filterLive(this.appList).map(app => {
                 return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles`)
@@ -157,6 +161,7 @@ class Backendless {
     }
 
     getAppRolePermissions() {
+        console.log('Fetching roles global permissions..')
         return Promise.all(
             filterLive(this.appList).map(app => Promise.all(
                 app.roles.map(role => {
@@ -167,16 +172,9 @@ class Backendless {
         )
     }
 
-    getAppUsers() {
-        return Promise.all(
-            filterLive(this.appList).map(app => {
-                return this.instance.get(`${this._getConsoleApiUrl(app)}/security/users`)
-                    .then(({data}) => app.users = data)
-            })
-        )
-    }
-
     getAppDataTableUserPermissions() {
+        console.log('Fetching users Data API permissions..')
+
         return Promise.all(
             filterLive(this.appList).map(app => {
                 return Promise.all(
@@ -190,6 +188,8 @@ class Backendless {
     }
 
     getAppDataTableRolePermissions() {
+        console.log('Fetching roles Data API permissions..')
+
         return Promise.all(
             filterLive(this.appList).map(app => Promise.all(
                 app.tables.map(table => {
@@ -201,6 +201,8 @@ class Backendless {
     }
 
     getAppServicesRolePermissions() {
+        console.log('Fetching roles Services API permissions..')
+
         return Promise.all(
             filterLive(this.appList).map(async app => {
 

@@ -1,12 +1,11 @@
 const _ = require('lodash');
 const chalk = require('chalk');
-const Promise = require('bluebird');
 const getUsage = require('command-line-usage');
 const helpFile = require('../constants/command-help');
 
 const help = getUsage(helpFile);
 
-const checkArgs = Promise.method(options => {
+const checkArgs = options => {
     const argIsValid = optionKey => {
         const argNotSet = !options[optionKey];
         const argEmpty = _.isEmpty(options[optionKey]);
@@ -36,6 +35,6 @@ const checkArgs = Promise.method(options => {
 
     return _.keys(options)
         .every(argIsValid);
-});
+};
 
 module.exports = checkArgs;
