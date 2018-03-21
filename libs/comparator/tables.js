@@ -27,11 +27,12 @@ const buildColumnsMap = table => {
         if (relations) {
             relations.forEach(relation => {
                 const column = {
-                    dataType: relation.toTableName,
+                    columnName: relation.columnName,
+                    toTableName: relation.toTableName,
                     required: relation.required,
                     unique: relation.unique,
                     autoLoad: relation.autoLoad,
-                    relationType: relation.relationshipType
+                    relationshipType: relation.relationshipType
                 }
 
                 const options = [`${relation.toTableName}(${relationTypeAlias(column.relationType)})`]
@@ -106,14 +107,13 @@ const printDifferences = (apps, appTablesMap) => {
     return result;
 }
 
-module.exports = apps => {
-    const appTablesMap = {}
+const buildAppTablesMap = apps => {
 
-    apps.forEach(app => {
-        const tablesMapByName = _.keyBy(app.tables, 'name');
+    return apps.reduce((appTablesMap, app) => {
+        const tablesMapByName = _.keyBy(app.tables, 'name')
 
         Object.keys(tablesMapByName).forEach(tableName => {
-            appTablesMap[tableName] || (appTablesMap[tableName] = {});
+            appTablesMap[tableName] || (appTablesMap[tableName] = {})
 
             const columnsMap = buildColumnsMap(tablesMapByName[tableName])
 
@@ -122,7 +122,15 @@ module.exports = apps => {
                 appTablesMap[tableName][columnName][app.name] = columnsMap[columnName]
             })
         })
-    });
+
+        return appTablesMap
+    }, {})
+}
+
+module.exports = apps => {
+    const appTablesMap = buildAppTablesMap(apps)
 
     return printDifferences(apps, appTablesMap);
 };
+
+module.exports.buildAppTablesMap = buildAppTablesMap

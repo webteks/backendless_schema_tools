@@ -8,5 +8,6 @@ module.exports = [
     { name: 'backendless-url', alias: 'b', type: String, group: 'compare', defaultValue: 'api.backendless.com'},
     { name: 'timeout', alias: 't', type: Number, group: 'compare', defaultValue: 120000},
     { name: 'verbose', alias: 'v', type: Boolean, group: 'compare'},
-    { name: 'monitor', alias: 'm', type: Boolean, group: 'compare'}
+    { name: 'monitor', alias: 'm', type: Boolean, group: 'compare'},
+    { name: 'sync', alias: 's', type: Boolean, group: 'compare'}
 ];

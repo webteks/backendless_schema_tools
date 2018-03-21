@@ -2,6 +2,7 @@ const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
 const {promisify} = require('util')
+
 let {readFile, writeFile, stat} = require('fs')
 
 writeFile = promisify(writeFile)
@@ -72,7 +73,12 @@ class Backendless {
     /* Build appversion api path provided currentVersionId */
     _getConsoleApiUrl(app) {
         return `${app.id}/console`
-    };
+    }
+
+    _getBaseTableUrl(appId) {
+        return `${appId}/console/data/tables`
+    }
+
 
     /* Authenticate user & add auth-key to header for future requests */
     login() {
@@ -275,6 +281,34 @@ class Backendless {
         })
 
         return [controlApp, ...appsToCheck]
+    }
+
+    addTable(appId, name) {
+        return this.instance.post(`${this._getBaseTableUrl(appId)}`, {name})
+    }
+
+    removeTable(appId, name) {
+        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${name}`)
+    }
+
+    addColumn(appId, table, column) {
+        return this.instance.post(`${this._getBaseTableUrl(appId)}/${table}/columns`, column)
+    }
+    updateColumn(appId, table, columnName, column) {
+        return this.instance.put(`${this._getBaseTableUrl(appId)}/${table}/columns/${columnName}`, column)
+    }
+    removeColumn(appId, table, columnName) {
+        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${table}/columns/${columnName}`)
+    }
+
+    addRelation(appId, table, relation) {
+        return this.instance.post(`${this._getBaseTableUrl(appId)}/${table}/columns/relation`, relation)
+    }
+    updateRelation(appId, table, columnName, relation) {
+        return this.instance.put(`${this._getBaseTableUrl(appId)}/${table}/columns/relation/${columnName}`, relation)
+    }
+    removeRelation(appId, table, columnName) {
+        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${table}/columns/relation/${columnName}`)
     }
 
     static saveDataToFile(data, path, verbose) {

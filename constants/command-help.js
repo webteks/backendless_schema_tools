@@ -63,7 +63,12 @@ module.exports = [
             {
                 name       : 'monitor',
                 alias      : 'm',
-                description: 'enables monitor: return 0 if schemas are dentical, or 1 - if not'
+                description: 'enables monitor: return 0 if schemas are identical, or 1 - if not'
+            },
+            {
+                name       : 'sync',
+                alias      : 's',
+                description: 'synchronize check-app => control-app'
             }
         ]
     }

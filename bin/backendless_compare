@@ -15,6 +15,7 @@ const compareTablesPermissions = require('../libs/comparator/tables-permissions'
 const compareEndpoints = require('../libs/comparator/endpoints')
 const compareEndpointsPermissions = require('../libs/comparator/endpoints-permissions')
 const compareAppPermissions = require('../libs/comparator/app-permissions')
+const syncManager = require('../libs/sync-manager')
 
 let backendless;
 
@@ -31,7 +32,8 @@ Promise.resolve()
             'backendless-url': beURL,
             'timeout': timeout,
             'verbose': verboseOutput,
-            'monitor': monitorMode
+            'monitor': monitorMode,
+            'sync': syncMode
         } = options.compare;
 
         !monitorMode && console.log(banner)
@@ -39,6 +41,8 @@ Promise.resolve()
         backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput);
 
         let apps
+
+        syncMode && syncManager.init(backendless)
 
         return backendless.getAppMeta()
             .then(() => backendless.getAppDataTables())
@@ -59,6 +63,8 @@ Promise.resolve()
                     throw new Error('Differences detected')
                 }
             })
+            .then(() => syncMode && syncManager.sync(apps))
+            .then(() => process.exit(0))
     })
 
     .catch((err) => {
