@@ -75,11 +75,6 @@ class Backendless {
         return `${app.id}/console`
     }
 
-    _getBaseTableUrl(appId) {
-        return `${appId}/console/data/tables`
-    }
-
-
     /* Authenticate user & add auth-key to header for future requests */
     login() {
         return this.instance.post('/console/home/login', {'login': this.username, 'password': this.password})
@@ -123,7 +118,7 @@ class Backendless {
     /* Filter application list based on beVersion & which apps are actually needed for checks */
     filterAppList() {
         this.appList = _(this.appList)
-            .filter(app => _.includes(this.appsContext, app.name))
+            .filter(app => _.includes(this.appsContext, app.name || app.appName))
             .value();
     }
 
@@ -263,7 +258,6 @@ class Backendless {
     /* Set controlApp & appsToCheck from appList and return copy of data */
     getApps() {
         const findAppByName = appName => _.find(this.appList, {'name': appName});
-
         const controlApp = findAppByName(this.controlAppName)
 
         if (!controlApp) {
@@ -284,31 +278,41 @@ class Backendless {
     }
 
     addTable(appId, name) {
-        return this.instance.post(`${this._getBaseTableUrl(appId)}`, {name})
+        return this.instance.post(`${appId}/console/data/tables`, {name})
     }
 
     removeTable(appId, name) {
-        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${name}`)
+        return this.instance.delete(`${appId}/console/data/tables/${name}`)
     }
 
     addColumn(appId, table, column) {
-        return this.instance.post(`${this._getBaseTableUrl(appId)}/${table}/columns`, column)
+        return this.instance.post(`${appId}/console/data/tables/${table}/columns`, column)
     }
     updateColumn(appId, table, columnName, column) {
-        return this.instance.put(`${this._getBaseTableUrl(appId)}/${table}/columns/${columnName}`, column)
+        return this.instance.put(`${appId}/console/data/tables/${table}/columns/${columnName}`, column)
     }
     removeColumn(appId, table, columnName) {
-        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${table}/columns/${columnName}`)
+        return this.instance.delete(`${appId}/console/data/tables/${table}/columns/${columnName}`)
     }
 
     addRelation(appId, table, relation) {
-        return this.instance.post(`${this._getBaseTableUrl(appId)}/${table}/columns/relation`, relation)
+        return this.instance.post(`${appId}/console/data/tables/${table}/columns/relation`, relation)
     }
     updateRelation(appId, table, columnName, relation) {
-        return this.instance.put(`${this._getBaseTableUrl(appId)}/${table}/columns/relation/${columnName}`, relation)
+        return this.instance.put(`${appId}/console/data/tables/${table}/columns/relation/${columnName}`, relation)
     }
     removeRelation(appId, table, columnName) {
-        return this.instance.delete(`${this._getBaseTableUrl(appId)}/${table}/columns/relation/${columnName}`)
+        return this.instance.delete(`${appId}/console/data/tables/${table}/columns/relation/${columnName}`)
+    }
+
+    addSecurityRole(appId, roleName) {
+        return this.instance.put(`${appId}/console/security/roles/${roleName}`, {})
+    }
+    updateSecurityRole(appId, roleId, payload) {
+        return this.instance.put(`${appId}/console/security/roles/permissions/${roleId}`, payload)
+    }
+    removeSecurityRole(appId, roleId) {
+        return this.instance.delete(`${appId}/console/security/roles/${roleId}`)
     }
 
     static saveDataToFile(data, path, verbose) {
