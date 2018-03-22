@@ -1,4 +1,7 @@
 const ansi = require('ansi-escape-sequences')
+const { CheckList } = require('./command-options')
+const _ = require('lodash')
+
 
 /**
  * This is the help screen, default usage.
@@ -41,7 +44,7 @@ module.exports = [
                 name       : 'applications-to-check',
                 alias      : 'c',
                 typeLabel  : '[underline]{\[\'dev (Comparison)\'\]}',
-                description: 'Required: Space seperated array of application names or paths to compare ie: dev alpha'
+                description: 'Required: Space separated array of application names or paths to compare ie: dev alpha'
             },
             {
                 name       : 'dump-application-control',
@@ -69,6 +72,11 @@ module.exports = [
                 name       : 'sync',
                 alias      : 's',
                 description: 'synchronize check-app => control-app'
+            },
+            {
+                name       : 'check-list',
+                alias      : 'l',
+                description: `space separated array of check props: ${_.values(CheckList).join(' ')}`
             }
         ]
     }

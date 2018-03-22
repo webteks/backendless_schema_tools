@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-const BackendlessConsole = require('../libs/backendless-console-api.js');
-const chalk = require('chalk');
-const checkForArguments = require('../utils/checkArgs');
-const commandLineArgs = require('command-line-args');
-const getUsage = require('command-line-usage');
+const BackendlessConsole = require('../libs/backendless-console-api.js')
+const chalk = require('chalk')
+const checkForArguments = require('../utils/checkArgs')
+const commandLineArgs = require('command-line-args')
+const getUsage = require('command-line-usage')
 
-const ansi_banner = require('../constants/command-banner');
-const optionDefinitions = require('../constants/command-options');
-const util = require('util');
-const banner = getUsage(ansi_banner);
-const options = commandLineArgs(optionDefinitions);
+const ansi_banner = require('../constants/command-banner')
+const optionDefinitions = require('../constants/command-options')
+const util = require('util')
+const banner = getUsage(ansi_banner)
+const options = commandLineArgs(optionDefinitions)
 const compareTables = require('../libs/comparator/tables')
 const compareTablesPermissions = require('../libs/comparator/tables-permissions')
 const compareEndpoints = require('../libs/comparator/endpoints')
@@ -17,59 +17,73 @@ const compareEndpointsPermissions = require('../libs/comparator/endpoints-permis
 const compareAppPermissions = require('../libs/comparator/app-permissions')
 const syncManager = require('../libs/sync-manager')
 
-let backendless;
+
+const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../constants/command-options').CheckList
 
 Promise.resolve()
     .then(() => checkForArguments(options.compare))
     .then(() => {
         const {
-            'username': username,
-            'password': password,
-            'application-control': appControl,
-            'applications-to-check': appsToCheck,
+            'username'                : username,
+            'password'                : password,
+            'application-control'     : appControl,
+            'applications-to-check'   : appsToCheck,
             'dump-application-control': dumpPath,
-            'reporting-directory': reportingDir,
-            'backendless-url': beURL,
-            'timeout': timeout,
-            'verbose': verboseOutput,
-            'monitor': monitorMode,
-            'sync': syncMode
-        } = options.compare;
+            'reporting-directory'     : reportingDir,
+            'backendless-url'         : beURL,
+            'timeout'                 : timeout,
+            'verbose'                 : verboseOutput,
+            'monitor'                 : monitorMode,
+            'sync'                    : syncMode,
+            'check-list'              : _checkList
+        } = options.compare
+
+        const checkList = _checkList.reduce((o, key) => {
+            o[key] = true
+            return o
+        }, {})
 
         !monitorMode && console.log(banner)
 
-        backendless = new BackendlessConsole(username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput);
+        const backendless = new BackendlessConsole(
+            username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
 
         let apps
 
         syncMode && syncManager.init(backendless)
 
+        const getAppRoles = () =>
+            Promise.resolve()
+                .then(() => backendless.getAppRoles())
+                .then(() => backendless.getAppRolePermissions())
+
         return backendless.getAppMeta()
-            .then(() => backendless.getAppDataTables())
-            .then(() => backendless.getAppRoles())
-            .then(() => backendless.getAppRolePermissions())
-//            .then(() => backendless.getAppDataTableUserPermissions())
-            .then(() => backendless.getAppDataTableRolePermissions())
-            .then(() => backendless.getAppServicesRolePermissions())
+            .then(() => checkList[SCHEMA] && backendless.getAppDataTables())
+            .then(() => checkList[ROLE_PERMS] && getAppRoles())
+            // .then(() => backendless.getAppDataTableUserPermissions())
+            .then(() => checkList[TABLE_PERMS] && backendless.getAppDataTableRolePermissions())
+            .then(() => checkList[API] && backendless.getAppServices())
+            .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
             .then(() => apps = backendless.getApps())
             .then(() => dumpPath && BackendlessConsole.saveDataToFile(apps[0], dumpPath, verboseOutput))
-            .then(() => compareTables(apps))
-            .then(hasDiferences => compareAppPermissions(apps) || hasDiferences)
-            .then(hasDiferences => compareTablesPermissions(apps) || hasDiferences)
-            .then(hasDiferences => compareEndpoints(apps) || hasDiferences)
-            .then(hasDiferences => compareEndpointsPermissions(apps) || hasDiferences)
+            .then(() => checkList[SCHEMA] && compareTables(apps))
+            .then(hasDiferences => checkList[ROLE_PERMS] && compareAppPermissions(apps) || hasDiferences)
+            .then(hasDiferences => checkList[TABLE_PERMS] && compareTablesPermissions(apps) || hasDiferences)
+            .then(hasDiferences => checkList[API] && compareEndpoints(apps) || hasDiferences)
+            .then(hasDiferences => checkList[API_PERMS] && compareEndpointsPermissions(apps) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && monitorMode) {
                     throw new Error('Differences detected')
                 }
             })
-            .then(() => syncMode && syncManager.sync(apps))
+            .then(() => syncMode && syncManager.sync(apps, checkList))
             .then(() => process.exit(0))
+
     })
 
     .catch((err) => {
-        console.log(util.inspect(err));
-        console.log(chalk.bold.red(err));
+        console.log(util.inspect(err))
+        console.log(chalk.bold.red(err))
 
         process.exit(1)
-    });
+    })

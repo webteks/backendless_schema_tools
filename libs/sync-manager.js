@@ -5,6 +5,9 @@ const _ = require('lodash')
 const ask = require('../utils/ask')
 const { buildAppTablesMap } = require('./comparator/tables')
 const { buildAppRolesMap, containsDifferences } = require('./comparator/app-permissions')
+const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../constants/command-options').CheckList
+
+
 
 const SYSTEM_TABLES = ['DeviceRegistration', 'Loggers']
 
@@ -72,15 +75,29 @@ module.exports = {
         }
     },
 
-    sync(apps) {
+    sync(apps, checkList) {
+        if (!checkList[SCHEMA] && !checkList[ROLE_PERMS]) {
+            return
+        }
+
         console.log('Synchronization..')
 
         return Promise.resolve()
+            .then(() => checkList[SCHEMA] && this.syncSchema(apps))
+            .then(() => checkList[ROLE_PERMS] && this.syncAppRoles(apps))
+            .then(() => console.log('Sync complete'))
+    },
+
+    syncSchema(apps) {
+        return Promise.resolve()
             .then(() => this.syncTables(apps))
             .then(() => this.syncColumns(apps))
+    },
+
+    syncAppRoles(apps) {
+        return Promise.resolve()
             .then(() => this.syncRoles(apps))
             .then(() => this.syncRolesPermissions(apps))
-            .then(() => console.log('Sync complete'))
     },
 
     syncTables(apps) {
