@@ -29,25 +29,25 @@ module.exports = [
                 description: 'Required'
             },
             {
+                name       : 'reference',
+                alias      : 'r',
+                typeLabel  : '[underline]{\[\'live (Reference) \'\]}',
+                description: 'Required: Reference Backendless Application name or path to dump-file'
+            },
+            {
+                name       : 'compare',
+                alias      : 'c',
+                typeLabel  : '[underline]{\[\'dev (Comparison)\'\]}',
+                description: 'Required: Space separated array of application names or paths to compare ie: \n dev alpha'
+            },
+            {
                 name       : 'backendless-url',
                 alias      : 'b',
                 typeLabel  : '[underline]{\[\'api.backendless.com\'\]}',
                 description: 'Backendless URL Override'
             },
             {
-                name       : 'application-control',
-                alias      : 'r',
-                typeLabel  : '[underline]{\[\'live (Reference) \'\]}',
-                description: 'Required: Reference Backendless Application name or path to dump-file'
-            },
-            {
-                name       : 'applications-to-check',
-                alias      : 'c',
-                typeLabel  : '[underline]{\[\'dev (Comparison)\'\]}',
-                description: 'Required: Space separated array of application names or paths to compare ie: dev alpha'
-            },
-            {
-                name       : 'dump-application-control',
+                name       : 'dump',
                 alias      : 'd',
                 typeLabel  : '[underline]{\[./path-to-file.json\]}',
                 description: 'Optional: Path to dump-file'
@@ -61,22 +61,22 @@ module.exports = [
             {
                 name       : 'verbose',
                 alias      : 'v',
-                description: 'enables move verbose logging output'
+                description: 'Enables move verbose logging output'
             },
             {
                 name       : 'monitor',
                 alias      : 'm',
-                description: 'enables monitor: return 0 if schemas are identical, or 1 - if not'
+                description: 'Enables monitor: returns 0 if identical, or 1 - if not'
             },
             {
                 name       : 'sync',
                 alias      : 's',
-                description: 'synchronize check-app => control-app'
+                description: 'Synchronize reference => compare app(s)'
             },
             {
                 name       : 'check-list',
                 alias      : 'l',
-                description: `space separated array of check props: ${_.values(CheckList).join(' ')}`
+                description: `Space separated array of compare types: \n ${_.values(CheckList).join(' ')}`
             }
         ]
     }

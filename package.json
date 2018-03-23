@@ -1,11 +1,11 @@
 {
-  "name": "@webteks/backendless_schema_tools",
-  "version": "2.0.3",
-  "description": "To install and test this utility  * git clone git@github.com:webteks/backendless_schema_tools.git  * cd backendless_schema_tools  * npm install -g",
+  "name": "@webteks/bact",
+  "version": "1.0.0",
+  "description": "Compararrison, Monitoring, and Sync tool for Backendless Apps",
   "url": "https://github.com/webteks/backendless_schema_tools/issues",
   "email": "support@webteks.com",
   "bin": {
-    "backendless_compare": "./bin/backendless_compare"
+    "bact": "./bin/backendless_compare"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

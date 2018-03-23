@@ -3,16 +3,15 @@ const _ = require('lodash')
 const CheckList = {
     SCHEMA     : 'schema',
     API        : 'api',
-    TABLE_PERMS: 'table-perms',
-    ROLE_PERMS : 'role-perms',
-    API_PERMS  : 'api-perms'
+    TABLE_PERMS: 'table_perms',
+    ROLE_PERMS : 'role_perms',
+    API_PERMS  : 'api_perms'
 }
 
 module.exports = [
-    { name: 'compare', alias: 'x', type: Boolean , group: 'compare' },
-    { name: 'application-control', alias: 'r', type: String, group: 'compare',defaultValue: ''},
-    { name: 'applications-to-check', alias: 'c', type: String, defaultValue: [], multiple: true, group: 'compare'},
-    { name: 'dump-application-control', alias: 'd', type: String, group: 'compare'},
+    { name: 'reference', alias: 'r', type: String, group: 'compare',defaultValue: ''},
+    { name: 'compare', alias: 'c', type: String, defaultValue: [], multiple: true, group: 'compare'},
+    { name: 'dump', alias: 'd', type: String, group: 'compare'},
     { name: 'username', alias: 'u', type: String, group: 'compare', defaultValue: ''},
     { name: 'password', alias: 'p', type: String, group: 'compare', defaultValue: ''},
     { name: 'backendless-url', alias: 'b', type: String, group: 'compare', defaultValue: 'api.backendless.com'},
