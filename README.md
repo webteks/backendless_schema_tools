@@ -5,7 +5,7 @@ The removal of "versions" in Backendless 4 menas that having dev/staging/live en
 
 ####How to install
  * To install and test from the repo simply run `npm install -g`
- * To install from npm simply run `npm install -g bact`
+ * To install from npm simply run `npm install -g @webteks/bact`
 
  _Compare, Monitor, and Sync schema and permissions of two or more Backendless Applications_
  
