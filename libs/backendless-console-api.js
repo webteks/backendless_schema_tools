@@ -193,14 +193,11 @@ class Backendless {
         console.log('Fetching roles Data API permissions..')
 
         return Promise.all(
-            filterLive(this.appList).map(app => Promise.resolve()
-                .then(() => !app.tables && this.getAppDataTables())
-                .then(() => Promise.all(
-                    app.tables.map(table => {
-                        return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
-                            .then(({data}) => table.roles = data)
-                    })
-                ))
+            filterLive(this.appList).map(app =>
+                app.tables.map(table => {
+                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
+                        .then(({data}) => table.roles = data)
+                })
             )
         )
     }
@@ -216,9 +213,7 @@ class Backendless {
 
                     return Promise.all(services.map(service => {
                         return this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
-                            .then(({data: methods}) => {
-                                service.methods = methods
-                            })
+                            .then(({data: methods}) => service.methods = methods)
                     }))
                 })
             })
@@ -230,26 +225,22 @@ class Backendless {
 
         return Promise.all(
             filterLive(this.appList).map(async app => {
-                return Promise.resolve()
-                    .then(() => !app.services && this.getAppServices())
-                    .then(() => {
-                        return Promise.all(app.services.map(service => {
-                            const methodsMap = _.keyBy(service.methods, 'id')
+                return Promise.all(app.services.map(service => {
+                    const methodsMap = _.keyBy(service.methods, 'id')
 
-                            return this.instance.get(
-                                `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
-                                .then(({data}) => {
-                                    data.forEach(role => {
-                                        role.permissions.forEach(({operation, access}) => {
-                                            const method = methodsMap[operation]
+                    return this.instance.get(
+                        `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
+                        .then(({data}) => {
+                            data.forEach(role => {
+                                role.permissions.forEach(({operation, access}) => {
+                                    const method = methodsMap[operation]
 
-                                            method.roles = method.roles || {}
-                                            method.roles[role.name] = access
-                                        })
-                                    })
+                                    method.roles = method.roles || {}
+                                    method.roles[role.name] = access
                                 })
-                        }))
-                    })
+                            })
+                        })
+                }))
             })
         )
     }
