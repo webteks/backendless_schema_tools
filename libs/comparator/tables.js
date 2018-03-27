@@ -35,7 +35,7 @@ const buildColumnsMap = table => {
                     relationshipType: relation.relationshipType
                 }
 
-                const options = [`${relation.toTableName}(${relationTypeAlias(column.relationType)})`]
+                const options = [`${relation.toTableName}(${relationTypeAlias(column.relationshipType)})`]
                 column.unique && (options.push('UQ'))
                 column.required && (options.push('NN'))
 

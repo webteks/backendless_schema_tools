@@ -1,18 +1,33 @@
 'use strict'
 
+const assert = require('assert')
 const chalk = require('chalk')
 const _ = require('lodash')
+const request = require('axios')
+
 const ask = require('../utils/ask')
 const { buildAppTablesMap } = require('./comparator/tables')
 const { buildAppRolesMap, containsDifferences } = require('./comparator/app-permissions')
 const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../constants/command-options').CheckList
 
 
+const log = console.log
 
 const SYSTEM_TABLES = ['DeviceRegistration', 'Loggers']
 
-const errorHandler = (item, err) =>
-    console.error(`Error: ${item} - ${err.message}`)
+const ADMIN_EMAIL = 'tempadmin@admin.admin'
+const ADMIN_PASSWORD = 'droneup2018'
+const ADMIN_ROLE = 'DARTadmin'
+
+let SERVER_URL
+
+const errorHandler = (item, err) => {
+    if (err.response) {
+        err = err.response.data
+    }
+
+    console.error(`Error: ${item} - ${err.message}`, err)
+}
 
 const prompt = q => ask(`${q} (y/n)`)
     .then(answer => answer === 'y')
@@ -30,61 +45,153 @@ const removeRoleMsg = role =>
     `Are you sure you want to delete the role ${chalk.bold(`${role}`)}?`
 
 
-module.exports = {
-    _syncColumn(appId, tableName, columnName, sourceColumn, targetColumn) {
-        const isRelation = !!((sourceColumn && sourceColumn.relationshipType)
-            || (targetColumn && targetColumn.relationshipType))
+const createRecord = (req, appId, table, record) =>
+    req.post(`${appId}/console/data/${table}`, record)
 
-        const columnType = isRelation ? 'relation' : 'column'
+const deleteRecord = (req, appId, table, record) =>
+    req.delete(`${appId}/console/data/tables/${table}/records`, { data: [record] })
+
+const userCache = {}
+
+const createAdmin = async (req, app) => {
+    let user
+
+    const createUser = (req, appId, user) =>
+        createRecord(req, appId, 'Users', user)
+
+    const getRoles = (req, appId) =>
+        req.get(`${appId}/console/security/roles`)
+
+    const getRoleId = async (req, appId, name) => {
+        const role = await getRoles(req, appId).then(roles => roles.find(role => role.rolename === name))
+
+        assert(role, `${name} role doesn't exist`)
+
+        return role.roleId
+    }
+
+    const updateAssignedUserRoles = (req, appId, users, roles) =>
+        req.put(`${appId}/console/security/assignedroles`, { users, roles })
+
+    try {
+        user = await createUser(req, app.id, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+
+        await updateAssignedUserRoles(req, app.id, [user.objectId], [{
+            roleId: await getRoleId(req, app.id, ADMIN_ROLE),
+            status: 'ALL'
+        }])
+
+        userCache[app.id] = user
+    } catch (e) {
+        if (e.response.data.message.match('User already exists.')) {
+            userCache[app.id] = {}
+
+            return userCache[app.id]
+        }
+
+        throw new Error(e)
+    }
+
+    return user
+}
+
+const loginAdmin = async (req, app) => {
+
+    const {data: user} = await request.post(`${SERVER_URL}/${app.id}/${app.secretKey}/users/login`, {
+        login   : ADMIN_EMAIL,
+        password: ADMIN_PASSWORD
+    })
+
+    userCache[app.id] = user
+
+    return userCache[app.id]
+}
+
+const cleanup = (req, apps) => Promise.all(
+    apps.map(app => userCache[app.id] && deleteRecord(req, app.id, 'Users', userCache[app.id]))
+)
+
+const bulkUpdate = async (req, app, table, where, data) => {
+    let user = userCache[app.id]
+
+    if (!user) {
+        user = await createAdmin(req, app)
+    }
+
+    if (!user['user-token']) {
+        await loginAdmin(req, app)
+    }
+
+    return request.put(`${SERVER_URL}/${app.id}/${app.secretKey}/data/bulk/${table}?where=${where}`, data, {
+        headers: { 'user-token': userCache[app.id]['user-token'] },
+        data
+    }).catch(console.error)
+}
+
+let responseIterseptor
+
+module.exports = {
+    async _syncColumn(app, tableName, columnName, sourceColumn, targetColumn) {
+
+        const addColumn = () => this.api.addColumn(app.id, tableName, sourceColumn)
+
+        const updateColumn = async () =>
+            prompt(updateColumnMsg(tableName, columnName, sourceColumn, targetColumn))
+                .then(async res => {
+                    if (!res) return
+
+                    if (sourceColumn.defaultValue && sourceColumn.required) {
+                        await bulkUpdate(this.request, app, tableName, `${columnName} is null`, {
+                            [columnName]: sourceColumn.defaultValue
+                        }).catch(console.error)
+                    }
+
+                    return this.api.updateColumn(app.id, tableName, sourceColumn)
+                })
+
+        const removeColumn = () =>
+            prompt(removeColumnMsg(tableName, columnName))
+                .then(res => res && this.api.removeColumn(app.id, tableName, targetColumn))
 
         if (!targetColumn) {
-            return this.api[columnType].add(appId, tableName, sourceColumn)
+            return addColumn()
         } else if (!sourceColumn) {
-            return prompt(removeColumnMsg(tableName, columnName))
-                .then(res => res && this.api[columnType].remove(appId, tableName, columnName))
+            return removeColumn()
         } else if (targetColumn.optionsString !== sourceColumn.optionsString) {
-            return prompt(updateColumnMsg(tableName, columnName, sourceColumn, targetColumn))
-                .then(res => res && this.api[columnType].update(appId, tableName, columnName, sourceColumn))
+            return updateColumn()
         }
 
         return Promise.resolve()
     },
 
     init(api) {
+        this.api = api
+        this.request = api.instance
 
-        this.api = {
-            table   : {
-                add   : api.addTable.bind(api),
-                remove: api.removeTable.bind(api)
-            },
-            column  : {
-                add   : api.addColumn.bind(api),
-                update: api.updateColumn.bind(api),
-                remove: api.removeColumn.bind(api)
-            },
-            relation: {
-                add   : api.addRelation.bind(api),
-                update: api.updateRelation.bind(api),
-                remove: api.removeRelation.bind(api)
-            },
-            role    : {
-                add   : api.addSecurityRole.bind(api),
-                remove: api.removeSecurityRole.bind(api),
-                update: api.updateSecurityRole.bind(api)
-            }
-        }
+        SERVER_URL = api.serverBaseURL
+
+        responseIterseptor = this.request.interceptors.response.use(res => res.data)
+
+        return this
     },
 
-    sync(apps, checkList) {
-        if (!checkList[SCHEMA] && !checkList[ROLE_PERMS]) {
+    destroy(apps) {
+        this.request.interceptors.request.eject(responseIterseptor)
+
+        return cleanup(this.request, apps)
+    },
+
+    sync(apps, syncList) {
+        if (!syncList[SCHEMA] && !syncList[ROLE_PERMS]) {
             return
         }
 
         console.log('Synchronization..')
 
         return Promise.resolve()
-            .then(() => checkList[SCHEMA] && this.syncSchema(apps))
-            .then(() => checkList[ROLE_PERMS] && this.syncAppRoles(apps))
+            .then(() => syncList[SCHEMA] && this.syncSchema(apps))
+            .then(() => syncList[ROLE_PERMS] && this.syncAppRoles(apps))
+            .then(() => this.destroy(apps.slice(1)))
             .then(() => console.log('Sync complete'))
     },
 
@@ -101,7 +208,7 @@ module.exports = {
     },
 
     syncTables(apps) {
-        console.log('Tables sync..')
+        log('Schema sync..')
 
         const getTableNames = tables =>
             tables
@@ -113,9 +220,9 @@ module.exports = {
         const sourceNames = getTableNames(source.tables)
 
         const addTable = (appId, tableName) =>
-            this.api.table.add(appId, tableName).catch(({ response }) => errorHandler(tableName, response.data))
+            this.api.addTable(appId, tableName).catch(err => errorHandler(tableName, err))
         const removeTable = (appId, tableName) =>
-            this.api.table.remove(appId, tableName).catch(({ response }) => errorHandler(tableName, response.data))
+            this.api.removeTable(appId, tableName).catch(err => errorHandler(tableName, err))
 
 
         const removeTables = (app, tablesNames) => {
@@ -140,8 +247,6 @@ module.exports = {
     },
 
     syncColumns(apps) {
-        console.log('Columns sync..')
-
         const appTablesMap = buildAppTablesMap(apps)
         const [sourceApp, ...targetApps] = apps
 
@@ -160,8 +265,8 @@ module.exports = {
 
                     return p.then(() => {
 
-                        return this._syncColumn(app.id, tableName, columnName, sourceColumn, targetColumn)
-                            .catch(({ response }) => errorHandler(`${tableName}.${columnName}`, response.data))
+                        return this._syncColumn(app, tableName, columnName, sourceColumn, targetColumn)
+                            .catch(err => errorHandler(`${tableName}.${columnName}`, err))
                     })
                 }, p)
             }, p)
@@ -169,17 +274,17 @@ module.exports = {
     },
 
     syncRoles(apps) {
-        console.log('Roles sync..')
+        log('Roles sync..')
 
         const [sourceApp, ...targetApps] = apps
 
         const addRole = (app, rolename) =>
-            this.api.role.add(app.id, rolename)
-                .then(({ data }) => app.roles.push(data))
+            this.api.addSecurityRole(app.id, rolename)
+                .then(role => app.roles.push(role))
 
         const removeRole = (app, roleId, rolename) =>
             prompt(removeRoleMsg(rolename)).then(res =>
-                res && this.api.role.remove(app.id, roleId)
+                res && this.api.removeSecurityRole(app.id, roleId)
                     .then(() => app.roles = app.roles.filter(role => role.roleId !== roleId)))
 
         return Promise.all(targetApps.map(targetApp => {
@@ -195,11 +300,10 @@ module.exports = {
     },
 
     syncRolesPermissions(apps) {
-        console.log('Roles permissions sync..')
+        log('Roles permissions sync..')
 
         const appRolesMap = buildAppRolesMap(apps)
         const [sourceApp, ...targetApps] = apps
-
 
         return Promise.all(Object.keys(appRolesMap).map(opKey => {
             const rolesMap = appRolesMap[opKey]
@@ -211,7 +315,7 @@ module.exports = {
                 return Promise.all(roles.map(roleName => {
                     const { roleId } = app.roles.find(role => role.rolename === roleName)
 
-                    return this.api.role.update(app.id, roleId, {
+                    return this.api.updateSecurityRole(app.id, roleId, {
                         type,
                         operation,
                         access: rolesMap[roleName][sourceApp.name]
