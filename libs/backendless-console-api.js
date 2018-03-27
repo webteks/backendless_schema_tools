@@ -1,3 +1,5 @@
+'use strict'
+
 const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
@@ -11,7 +13,14 @@ stat = promisify(stat)
 
 const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
 
+const RELATION_URL_SUFFIX = 'relation';
+const GEO_RELATION_URL_SUFFIX = 'georelation';
+
 const filterLive = apps => apps.filter(app => !app.fromJSON)
+
+const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
+
+const isRelation = column => !!column.relationshipType
 
 class Backendless {
     constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput) {
@@ -41,6 +50,7 @@ class Backendless {
             return config
         })
 
+
         /* Log success or failure for all requests on response */
         instance.interceptors.response.use(res => {
             if (verboseOutput) {
@@ -49,8 +59,12 @@ class Backendless {
             return res
         })
 
+        const serverBaseURL = process.env.DEV ? 'http://localhost:9000' : `${beURL}/api`
+
         /* Assign input vars to object instance */
         _.assign(this, {
+            clientBaseURL: beURL,
+            serverBaseURL,
             appsContext,
             appList: [],
             appsToCheck: [],
@@ -124,7 +138,7 @@ class Backendless {
 
     getAppSecrets() {
         return Promise.all(
-            this.appList.map(app => {
+            filterLive(this.appList).map(app => {
                 if (app.id) {
                     return this.instance.get(`/${app.id}/console/appsettings`)
                         .then(({data}) => app.secretKey = data.devices.REST);
@@ -193,14 +207,11 @@ class Backendless {
         console.log('Fetching roles Data API permissions..')
 
         return Promise.all(
-            filterLive(this.appList).map(app => Promise.resolve()
-                .then(() => !app.tables && this.getAppDataTables())
-                .then(() => Promise.all(
-                    app.tables.map(table => {
-                        return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
-                            .then(({data}) => table.roles = data)
-                    })
-                ))
+            filterLive(this.appList).map(app =>
+                app.tables.map(table => {
+                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
+                        .then(({data}) => table.roles = data)
+                })
             )
         )
     }
@@ -216,9 +227,7 @@ class Backendless {
 
                     return Promise.all(services.map(service => {
                         return this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
-                            .then(({data: methods}) => {
-                                service.methods = methods
-                            })
+                            .then(({data: methods}) => service.methods = methods)
                     }))
                 })
             })
@@ -230,26 +239,22 @@ class Backendless {
 
         return Promise.all(
             filterLive(this.appList).map(async app => {
-                return Promise.resolve()
-                    .then(() => !app.services && this.getAppServices())
-                    .then(() => {
-                        return Promise.all(app.services.map(service => {
-                            const methodsMap = _.keyBy(service.methods, 'id')
+                return Promise.all(app.services.map(service => {
+                    const methodsMap = _.keyBy(service.methods, 'id')
 
-                            return this.instance.get(
-                                `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
-                                .then(({data}) => {
-                                    data.forEach(role => {
-                                        role.permissions.forEach(({operation, access}) => {
-                                            const method = methodsMap[operation]
+                    return this.instance.get(
+                        `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
+                        .then(({data}) => {
+                            data.forEach(role => {
+                                role.permissions.forEach(({operation, access}) => {
+                                    const method = methodsMap[operation]
 
-                                            method.roles = method.roles || {}
-                                            method.roles[role.name] = access
-                                        })
-                                    })
+                                    method.roles = method.roles || {}
+                                    method.roles[role.name] = access
                                 })
-                        }))
-                    })
+                            })
+                        })
+                }))
             })
         )
     }
@@ -259,6 +264,7 @@ class Backendless {
         return this.login()
             .then(() => this.loadFromFileIfNeeded())
             .then(() => this.getAppList())
+            .then(() => this.getAppSecrets())
             .then(() => this.filterAppList())
             .then(() => this.normalize())
     }
@@ -304,23 +310,34 @@ class Backendless {
     }
 
     addColumn(appId, table, column) {
-        return this.instance.post(`${appId}/console/data/tables/${table}/columns`, column)
-    }
-    updateColumn(appId, table, columnName, column) {
-        return this.instance.put(`${appId}/console/data/tables/${table}/columns/${columnName}`, column)
-    }
-    removeColumn(appId, table, columnName) {
-        return this.instance.delete(`${appId}/console/data/tables/${table}/columns/${columnName}`)
-    }
+        let path = tableColumnsUrl(appId, table)
 
-    addRelation(appId, table, relation) {
-        return this.instance.post(`${appId}/console/data/tables/${table}/columns/relation`, relation)
+        if (isRelation(column)) {
+            path += '/relation'
+        }
+
+        return this.instance.post(path, column)
     }
-    updateRelation(appId, table, columnName, relation) {
-        return this.instance.put(`${appId}/console/data/tables/${table}/columns/relation/${columnName}`, relation)
+    updateColumn(appId, table, column) {
+        const columnName = column.name || column.columnName
+        let path = tableColumnsUrl(appId, table)
+
+        if (isRelation(column)) {
+            path += '/relation'
+        }
+
+        return this.instance.put(`${path}/${columnName}`, column)
+
     }
-    removeRelation(appId, table, columnName) {
-        return this.instance.delete(`${appId}/console/data/tables/${table}/columns/relation/${columnName}`)
+    removeColumn(appId, table, column) {
+        const columnName = column.name || column.columnName
+        let path = tableColumnsUrl(appId, table)
+
+        if (isRelation(column)) {
+            path += '/relation'
+        }
+
+        return this.instance.delete(`${path}/${columnName}`)
     }
 
     addSecurityRole(appId, roleName) {
@@ -332,6 +349,7 @@ class Backendless {
     removeSecurityRole(appId, roleId) {
         return this.instance.delete(`${appId}/console/security/roles/${roleId}`)
     }
+
 
     static saveDataToFile(data, path, verbose) {
         return writeFile(path, JSON.stringify(data))
