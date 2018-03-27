@@ -63,7 +63,8 @@ const createAdmin = async (req, app) => {
         req.get(`${appId}/console/security/roles`)
 
     const getRoleId = async (req, appId, name) => {
-        const role = await getRoles(req, appId).then(roles => roles.find(role => role.rolename === name))
+        const role = await getRoles(req, appId)
+            .then(({data: roles}) => roles.find(role => role.rolename === name))
 
         assert(role, `${name} role doesn't exist`)
 
@@ -75,6 +76,7 @@ const createAdmin = async (req, app) => {
 
     try {
         user = await createUser(req, app.id, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+            .then(({data}) => data)
 
         await updateAssignedUserRoles(req, app.id, [user.objectId], [{
             roleId: await getRoleId(req, app.id, ADMIN_ROLE),
@@ -125,10 +127,9 @@ const bulkUpdate = async (req, app, table, where, data) => {
     return request.put(`${SERVER_URL}/${app.id}/${app.secretKey}/data/bulk/${table}?where=${where}`, data, {
         headers: { 'user-token': userCache[app.id]['user-token'] },
         data
-    }).catch(console.error)
+    })
 }
 
-let responseIterseptor
 
 module.exports = {
     async _syncColumn(app, tableName, columnName, sourceColumn, targetColumn) {
@@ -143,7 +144,7 @@ module.exports = {
                     if (sourceColumn.defaultValue && sourceColumn.required) {
                         await bulkUpdate(this.request, app, tableName, `${columnName} is null`, {
                             [columnName]: sourceColumn.defaultValue
-                        }).catch(console.error)
+                        })
                     }
 
                     return this.api.updateColumn(app.id, tableName, sourceColumn)
@@ -170,14 +171,10 @@ module.exports = {
 
         SERVER_URL = api.serverBaseURL
 
-        responseIterseptor = this.request.interceptors.response.use(res => res.data)
-
         return this
     },
 
     destroy(apps) {
-        this.request.interceptors.request.eject(responseIterseptor)
-
         return cleanup(this.request, apps)
     },
 
@@ -198,6 +195,8 @@ module.exports = {
     syncSchema(apps) {
         return Promise.resolve()
             .then(() => this.syncTables(apps))
+            // update data
+            .then(() => this.api.getAppDataTables())
             .then(() => this.syncColumns(apps))
     },
 
@@ -280,7 +279,7 @@ module.exports = {
 
         const addRole = (app, rolename) =>
             this.api.addSecurityRole(app.id, rolename)
-                .then(role => app.roles.push(role))
+                .then(({data: role}) => app.roles.push(role))
 
         const removeRole = (app, roleId, rolename) =>
             prompt(removeRoleMsg(rolename)).then(res =>

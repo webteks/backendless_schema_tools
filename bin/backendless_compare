@@ -24,18 +24,18 @@ Promise.resolve()
     .then(() => checkForArguments(options.compare))
     .then(() => {
         const {
-            'username'                : username,
-            'password'                : password,
-            'reference'               : appControl,
-            'compare'                 : appsToCheck,
-            'dump'                    : dumpPath,
-            'reporting-directory'     : reportingDir,
-            'backendless-url'         : beURL,
-            'timeout'                 : timeout,
-            'verbose'                 : verboseOutput,
-            'monitor'                 : monitorMode,
-            'sync'                    : syncMode,
-            'check-list'              : _checkList
+            'username'           : username,
+            'password'           : password,
+            'reference'          : appControl,
+            'compare'            : appsToCheck,
+            'dump'               : dumpPath,
+            'reporting-directory': reportingDir,
+            'backendless-url'    : beURL,
+            'timeout'            : timeout,
+            'verbose'            : verboseOutput,
+            'monitor'            : monitorMode,
+            'sync'               : syncMode,
+            'check-list'         : _checkList
         } = options.compare
 
         const checkList = _checkList.reduce((o, key) => {
@@ -54,7 +54,7 @@ Promise.resolve()
             Promise.resolve()
                 .then(() => backendless.getAppRoles())
                 .then(() => backendless.getAppRolePermissions())
-        console.log(checkList)
+
         return backendless.getAppMeta()
             .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables())
             .then(() => checkList[ROLE_PERMS] && getAppRoles())
@@ -70,15 +70,18 @@ Promise.resolve()
             .then(hasDiferences => checkList[API] && compareEndpoints(apps) || hasDiferences)
             .then(hasDiferences => checkList[API_PERMS] && compareEndpointsPermissions(apps) || hasDiferences)
             .then(hasDiferences => {
-                if (hasDiferences && monitorMode) {
-                    throw new Error('Differences detected')
-                }
-            })
-            .then(() => {
-                if (syncMode) {
+                if (hasDiferences && syncMode) {
                     return syncManager
                         .init(backendless)
                         .sync(apps, checkList)
+                        .then(() => hasDiferences)
+                }
+
+                return hasDiferences
+            })
+            .then(hasDiferences => {
+                if (hasDiferences && monitorMode) {
+                    throw new Error('Differences detected')
                 }
             })
             .then(() => process.exit(0))
