@@ -65,15 +65,14 @@ Promise.resolve()
             .then(() => apps = backendless.getApps())
             .then(() => dumpPath && BackendlessConsole.saveDataToFile(apps[0], dumpPath, verboseOutput))
             .then(() => checkList[SCHEMA] && compareTables(apps))
-            .then(hasDiferences => checkList[ROLE_PERMS] && compareAppPermissions(apps) || hasDiferences)
-            .then(hasDiferences => checkList[TABLE_PERMS] && compareTablesPermissions(apps) || hasDiferences)
-            .then(hasDiferences => checkList[API] && compareEndpoints(apps) || hasDiferences)
-            .then(hasDiferences => checkList[API_PERMS] && compareEndpointsPermissions(apps) || hasDiferences)
+            .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
+            .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
+            .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
+            .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && syncMode) {
-                    return syncManager
-                        .init(backendless)
-                        .sync(apps, checkList)
+                    return syncManager(backendless, checkList)
+                        .sync(apps)
                         .then(() => hasDiferences)
                 }
 

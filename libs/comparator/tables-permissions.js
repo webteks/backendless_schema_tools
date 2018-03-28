@@ -2,7 +2,6 @@
 
 const _ = require('lodash');
 const Table = require('cli-table');
-const chalk = require('chalk');
 
 const containsDifferences = (apps, roleName, rolesMap) => {
     const versions = _.uniqBy(apps, app => {
@@ -59,10 +58,9 @@ const printDifferences = (apps, tablesMap) => {
     return result
 }
 
-module.exports = apps => {
-    const map = {}
 
-    apps.forEach(app => {
+const buildTableRolesMap = apps => {
+    return apps.reduce((map, app) => {
         app.tables.forEach(table => {
             const tableMap = map[table.name] || (map[table.name] = {});
 
@@ -74,7 +72,16 @@ module.exports = apps => {
                 })
             })
         })
-    });
+
+        return map
+    }, {})
+}
+
+module.exports = apps => {
+    const map = buildTableRolesMap(apps)
 
     return printDifferences(apps, map);
 };
+
+module.exports.buildTableRolesMap = buildTableRolesMap
+module.exports.containsDifferences = containsDifferences

@@ -207,11 +207,12 @@ class Backendless {
         console.log('Fetching roles Data API permissions..')
 
         return Promise.all(
-            filterLive(this.appList).map(app =>
+            filterLive(this.appList).map(app => Promise.all(
                 app.tables.map(table => {
+
                     return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
                         .then(({data}) => table.roles = data)
-                })
+                }))
             )
         )
     }
@@ -343,11 +344,18 @@ class Backendless {
     addSecurityRole(appId, roleName) {
         return this.instance.put(`${appId}/console/security/roles/${roleName}`, {})
     }
-    updateSecurityRole(appId, roleId, payload) {
-        return this.instance.put(`${appId}/console/security/roles/permissions/${roleId}`, payload)
+    updateSecurityRole(appId, roleId, premission) {
+        return this.instance.put(`${appId}/console/security/roles/permissions/${roleId}`, premission)
     }
     removeSecurityRole(appId, roleId) {
         return this.instance.delete(`${appId}/console/security/roles/${roleId}`)
+    }
+
+    updateTablePermissions(appId, tableId, roleId, premissions) {
+        return this.instance.put(`${appId}/console/security/data/${tableId}/roles/${roleId}`, premissions)
+    }
+    resetTablePermissions(appId, tableId, roleId) {
+        return this.instance.delete(`${appId}/console/security/data/${tableId}/roles/${roleId}`)
     }
 
 
