@@ -9,6 +9,7 @@ const ask = require('../../utils/ask')
 const { buildAppTablesMap } = require('../comparator/tables')
 const syncAppPermissions = require('./app-permissions')
 const syncTablesPermissions = require('./tables-permissions')
+const syncEndpointsPermissions = require('./endpoints-permissions')
 
 const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../../constants/command-options').CheckList
 
@@ -173,7 +174,7 @@ module.exports = (api, syncList) => {
         },
 
         sync(apps) {
-            if (!syncList[SCHEMA] && !syncList[ROLE_PERMS] && !syncList[TABLE_PERMS]) {
+            if (!(syncList[SCHEMA] || syncList[ROLE_PERMS] || syncList[TABLE_PERMS] || syncList[API_PERMS])) {
                 return
             }
 
@@ -184,7 +185,9 @@ module.exports = (api, syncList) => {
                 .then(() => syncList[ROLE_PERMS] && syncAppPermissions(api, apps))
                 // update table roles
                 .then(() => syncList[ROLE_PERMS] && syncList[TABLE_PERMS] && api.getAppDataTableRolePermissions())
+
                 .then(() => syncList[TABLE_PERMS] && syncTablesPermissions(api, apps))
+                .then(() => syncList[API_PERMS] && syncEndpointsPermissions(api, apps))
                 .then(() => this.destroy(apps.slice(1)))
                 .then(() => console.log('Sync complete'))
         },

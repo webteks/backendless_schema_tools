@@ -57,7 +57,7 @@ Promise.resolve()
 
         return backendless.getAppMeta()
             .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables())
-            .then(() => checkList[ROLE_PERMS] && getAppRoles())
+            .then(() => (checkList[ROLE_PERMS] || checkList[API_PERMS]) && getAppRoles())
             // .then(() => backendless.getAppDataTableUserPermissions())
             .then(() => checkList[TABLE_PERMS] && backendless.getAppDataTableRolePermissions())
             .then(() => (checkList[API] || checkList[API_PERMS]) && backendless.getAppServices())
@@ -71,8 +71,7 @@ Promise.resolve()
             .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && syncMode) {
-                    return syncManager(backendless, checkList)
-                        .sync(apps)
+                    return syncManager(backendless, checkList).sync(apps)
                         .then(() => hasDiferences)
                 }
 

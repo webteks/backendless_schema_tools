@@ -1,7 +1,5 @@
 'use strict'
 
-const _ = require('lodash')
-
 const { containsDifferences, buildTableRolesMap } = require('../comparator/tables-permissions')
 
 
@@ -26,7 +24,7 @@ module.exports = (api, apps) => {
                     const { roleId } = table.roles.find(role => role.name === roleName)
                     const access = rolesMap[roleName][sourceApp.name]
 
-                    const key = `${app.id}.${table.tableId}.${roleId}`
+                    const key = [app.id, table.tableId, roleId].join('.')
 
                     permissionsMap[key] || (permissionsMap[key] = [])
                     permissionsMap[key].push({ operation, access })
@@ -35,23 +33,13 @@ module.exports = (api, apps) => {
         })
     })
 
-    const promises = []
 
-    targetApps.forEach(app => {
-        app.tables.forEach(table => {
-            (table.roles || []).forEach(role => {
-                const permissions = permissionsMap[`${app.id}.${table.tableId}.${role.roleId}`]
+    return Promise.all(Object.keys(permissionsMap).map(key => {
+        const [appId, tableId, roleId] = key.split('.')
 
-                if (permissions) {
-                    promises.push(Promise.resolve()
-                        .then(() => api.resetTablePermissions(app.id, table.tableId, role.roleId))
-                        .then(() => api.updateTablePermissions(app.id, table.tableId, role.roleId, { permissions }))
-                        .catch(err => console.error(err.response.data)))
-                }
-
-            })
-        })
-    })
-
-    return Promise.all(promises)
+        return Promise.resolve()
+            .then(() => api.resetTablePermissions(appId, tableId, roleId))
+            .then(() => api.updateTablePermissions(appId, tableId, roleId, { permissions: permissionsMap[key] }))
+            .catch(err => console.error(err.response.data))
+    }))
 }

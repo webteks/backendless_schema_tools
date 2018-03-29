@@ -239,13 +239,18 @@ class Backendless {
         console.log('Fetching roles Services API permissions..')
 
         return Promise.all(
-            filterLive(this.appList).map(async app => {
+            filterLive(this.appList).map(async (app, appIndex) => {
                 return Promise.all(app.services.map(service => {
                     const methodsMap = _.keyBy(service.methods, 'id')
 
                     return this.instance.get(
                         `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
                         .then(({data}) => {
+                            // endpoint permission sync requires roles list
+                            if (appIndex > 0) {
+                                service.roles = data
+                            }
+
                             data.forEach(role => {
                                 role.permissions.forEach(({operation, access}) => {
                                     const method = methodsMap[operation]
@@ -356,6 +361,13 @@ class Backendless {
     }
     resetTablePermissions(appId, tableId, roleId) {
         return this.instance.delete(`${appId}/console/security/data/${tableId}/roles/${roleId}`)
+    }
+
+    updateEndpointPermissions(appId, serviceId, roleId, premissions) {
+        return this.instance.put(`${appId}/console/security/localservices/${serviceId}/roles/${roleId}`, premissions)
+    }
+    resetEndpointPermissions(appId, serviceId, roleId, operation) {
+        return this.instance.delete(`${appId}/console/security/localservices/${serviceId}/roles/${roleId}/${operation}`)
     }
 
 

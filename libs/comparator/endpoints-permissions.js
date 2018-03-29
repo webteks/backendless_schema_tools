@@ -1,36 +1,18 @@
-'use strict';
+'use strict'
 
-const _ = require('lodash');
-const Table = require('cli-table');
-const chalk = require('chalk');
+const Table = require('cli-table')
 
-const containsDifferences = (apps, roleName, rolesMap) => {
-    const versions = _.uniqBy(apps, app => {
-        const tableExistsInMoreThanOneApp = Object.keys(rolesMap[roleName]).length > 1;
-
-        //ignore missed app tables. Such difference is reported by table comparator
-        if (tableExistsInMoreThanOneApp) {
-            const access = rolesMap[roleName][app.name];
-
-            //ignore inherited permissions. Such difference is reported by app permissions comparator
-            if (access && !access.includes('INHERIT')) {
-                return access;
-            }
-        }
-    })
-
-    return versions.length > 1
-}
+const { containsDifferences } = require('./tables-permissions')
 
 const printDifferences = (apps, map) => {
     const table = new Table({
         head: ['Endpoint', 'Role', ...apps.map(app => app.name)]
-    });
+    })
 
     let result = false
 
     Object.keys(map).sort().forEach(endpoint => {
-        const rolesMap = map[endpoint];
+        const rolesMap = map[endpoint]
 
         const roles = Object.keys(rolesMap).filter(roleName => containsDifferences(apps, roleName, rolesMap))
 
@@ -45,7 +27,7 @@ const printDifferences = (apps, map) => {
             roles.join('\n'),
             ...apps.map(app => roles.map(roleName => rolesMap[roleName][app.name]).join('\n'))
         ])
-    });
+    })
 
     if (result) {
         console.log('\nEndpoints Permissions:')
@@ -55,23 +37,25 @@ const printDifferences = (apps, map) => {
     return result
 }
 
-module.exports = apps => {
-    const map = {}
-
-    apps.forEach(app => {
+const buildEndpointsRolesMap = apps => {
+    return apps.reduce((map, app) => {
         (app.services || []).forEach(service => {
             (service.methods || []).forEach(method => {
                 const methodId = [service.name, method.method].join('.')
-                const methodAccessMap = map[methodId] || (map[methodId] = {});
+                const methodAccessMap = map[methodId] || (map[methodId] = {})
 
                 Object.keys(method.roles).forEach(role => {
                     const access = method.roles[role]
-                    const roleMap = methodAccessMap[role] || (methodAccessMap[role] = {});
+                    const roleMap = methodAccessMap[role] || (methodAccessMap[role] = {})
                     roleMap[app.name] = access
                 })
             })
         })
-    });
 
-    return printDifferences(apps, map);
-};
+        return map
+    }, {})
+}
+
+module.exports = apps => printDifferences(apps, buildEndpointsRolesMap(apps))
+
+module.exports.buildEndpointsRolesMap = buildEndpointsRolesMap
