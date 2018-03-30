@@ -15,7 +15,7 @@ const compareTablesPermissions = require('../libs/comparator/tables-permissions'
 const compareEndpoints = require('../libs/comparator/endpoints')
 const compareEndpointsPermissions = require('../libs/comparator/endpoints-permissions')
 const compareAppPermissions = require('../libs/comparator/app-permissions')
-const syncManager = require('../libs/sync-manager')
+const sync = require('../libs/sync')
 
 
 const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../constants/command-options').CheckList
@@ -71,7 +71,7 @@ Promise.resolve()
             .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && syncMode) {
-                    return syncManager(backendless, checkList).sync(apps)
+                    return sync(backendless, apps, checkList)
                         .then(() => hasDiferences)
                 }
 

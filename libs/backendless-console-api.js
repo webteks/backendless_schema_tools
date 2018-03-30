@@ -164,13 +164,16 @@ class Backendless {
         )
     }
 
+    getRoles(appId) {
+        return this.instance.get(`${appId}/console/security/roles`)
+    }
+
     getAppRoles() {
         console.log('Fetching roles..')
 
         return Promise.all(
             filterLive(this.appList).map(app => {
-                return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles`)
-                    .then(({data}) => app.roles = data);
+                return this.getRoles(app.id).then(({data}) => app.roles = data);
             })
         )
     }
@@ -370,12 +373,25 @@ class Backendless {
         return this.instance.delete(`${appId}/console/security/localservices/${serviceId}/roles/${roleId}/${operation}`)
     }
 
+    createRecord(appId, table, record) {
+        return this.instance.post(`${appId}/console/data/${table}`, record)
+    }
+    deleteRecord(appId, table, record) {
+        return this.instance.delete(`${appId}/console/data/tables/${table}/records`, { data: [record] })
+    }
+
+    updateAssignedUserRoles(appId, users, roles) {
+        return this.instance.put(`${appId}/console/security/assignedroles`, { users, roles })
+    }
 
     static saveDataToFile(data, path, verbose) {
         return writeFile(path, JSON.stringify(data))
             .then(() => verbose && console.log(chalk.bold.green(`...... Schema is saved`)))
             .catch(e => console.error(e))
     }
+
+
+
 }
 
 module.exports = Backendless
