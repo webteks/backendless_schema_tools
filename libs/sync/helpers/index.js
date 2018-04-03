@@ -3,6 +3,8 @@
 const request = require('axios')
 const assert = require('assert')
 
+const ask = require('../../../utils/ask')
+
 const ADMIN_EMAIL = 'tempadmin@admin.admin'
 const ADMIN_PASSWORD = 'droneup2018'
 const ADMIN_ROLE = 'DARTadmin'
@@ -69,5 +71,9 @@ module.exports = {
     },
 
     cleanup: (api, apps) => Promise.all(
-        apps.slice(1).map(app => userCache[app.id] && api.deleteRecord(app.id, 'Users', userCache[app.id])))
+        apps.slice(1).map(app => userCache[app.id] && api.deleteRecord(app.id, 'Users', userCache[app.id]))),
+
+    prompt(q) {
+        return ask(`${q} (y/n)`).then(answer => answer === 'y')
+    }
 }

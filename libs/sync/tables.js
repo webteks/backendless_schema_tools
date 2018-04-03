@@ -1,10 +1,9 @@
 'use strict'
 
 const chalk = require('chalk')
-const ask = require('../../utils/ask')
 
 const { buildAppTablesMap } = require('../comparator/tables')
-const { cleanup, bulkUpdate } = require('./helpers')
+const { cleanup, bulkUpdate, prompt } = require('./helpers')
 
 const SYSTEM_TABLES = ['DeviceRegistration', 'Loggers']
 
@@ -18,9 +17,6 @@ const updateColumnMsg = (table, column, source, target) =>
 
 const removeColumnMsg = (table, column) =>
     `Are you sure you want to delete the column ${chalk.bold(`${table}.${column}`)}?`
-
-const prompt = q => ask(`${q} (y/n)`)
-    .then(answer => answer === 'y')
 
 const errorHandler = (item, err) => {
     if (err.response) {

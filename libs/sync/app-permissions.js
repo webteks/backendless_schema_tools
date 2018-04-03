@@ -1,8 +1,11 @@
 'use strict'
 
 const _ = require('lodash')
+const chalk = require('chalk')
 
 const { buildAppRolesMap, containsDifferences } = require('../comparator/app-permissions')
+const { prompt } = require('./helpers')
+
 
 const removeRoleMsg = role =>
     `Are you sure you want to delete the role ${chalk.bold(`${role}`)}?`
