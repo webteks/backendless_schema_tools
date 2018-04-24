@@ -9,14 +9,14 @@ const SYSTEM_TABLES = ['DeviceRegistration', 'Loggers']
 
 const log = console.log
 
-const removeTableMsg = tableName => `Are you sure you want to delete the table ${chalk.bold(tableName)}?`
+const removeTableMsg = (app, table) => `Are you sure you want to delete the table ${chalk.bold(`${app}.${table}`)}?`
 
-const updateColumnMsg = (table, column, source, target) =>
-    `Are you sure you want to update the column ${chalk.bold(`${table}.${column}`)}: ` +
+const updateColumnMsg = (app, table, column, source, target) =>
+    `Are you sure you want to update the column ${chalk.bold(`${app}.${table}.${column}`)}: ` +
     `"${source.optionsString}" => "${target.optionsString}"?`
 
-const removeColumnMsg = (table, column) =>
-    `Are you sure you want to delete the column ${chalk.bold(`${table}.${column}`)}?`
+const removeColumnMsg = (app, table, column) =>
+    `Are you sure you want to delete the column ${chalk.bold(`${app}.${table}.${column}`)}?`
 
 const errorHandler = (item, err) => {
     if (err.response) {
@@ -47,7 +47,7 @@ const syncTables = (api, apps) => {
     const removeTables = (app, tablesNames) => {
         return tablesNames.reduce((p, tableName) => {
             return p
-                .then(() => prompt(removeTableMsg(tableName)))
+                .then(() => prompt(removeTableMsg(app.name, tableName)))
                 .then(res => res && removeTable(app.id, tableName))
                 .then(() => app.tables = app.tables.filter(table => table.name !== tableName))
         }, Promise.resolve())
@@ -70,7 +70,7 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
     const addColumn = () => api.addColumn(app.id, tableName, sourceColumn)
 
     const updateColumn = async () =>
-        prompt(updateColumnMsg(tableName, columnName, sourceColumn, targetColumn))
+        prompt(updateColumnMsg(app.name, tableName, columnName, sourceColumn, targetColumn))
             .then(async res => {
                 if (!res) return
 
@@ -84,7 +84,7 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
             })
 
     const removeColumn = () =>
-        prompt(removeColumnMsg(tableName, columnName))
+        prompt(removeColumnMsg(app.name, tableName, columnName))
             .then(res => res && api.removeColumn(app.id, tableName, targetColumn))
 
     if (!targetColumn) {

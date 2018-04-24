@@ -7,8 +7,8 @@ const { buildAppRolesMap, containsDifferences } = require('../comparator/app-per
 const { prompt } = require('./helpers')
 
 
-const removeRoleMsg = role =>
-    `Are you sure you want to delete the role ${chalk.bold(`${role}`)}?`
+const removeRoleMsg = (app, role) =>
+    `Are you sure you want to delete the role ${chalk.bold(`${app}.${role}`)}?`
 
 const syncRoles = (api, apps) => {
 
@@ -21,7 +21,7 @@ const syncRoles = (api, apps) => {
             .then(({ data: role }) => app.roles.push(role))
 
     const removeRole = (app, roleId, rolename) =>
-        prompt(removeRoleMsg(rolename)).then(res =>
+        prompt(removeRoleMsg(app.name, rolename)).then(res =>
             res && api.removeSecurityRole(app.id, roleId)
                 .then(() => app.roles = app.roles.filter(role => role.roleId !== roleId)))
 
