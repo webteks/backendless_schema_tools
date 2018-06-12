@@ -55,11 +55,13 @@ const syncRolesPermissions = (api, apps) => {
             roles.forEach(roleName => {
                 const { roleId } = app.roles.find(role => role.rolename === roleName)
 
-                promises.push(api.updateSecurityRole(app.id, roleId, {
-                    type,
-                    operation,
-                    access: rolesMap[roleName][sourceApp.name]
-                }))
+                if (rolesMap[roleName][sourceApp.name]) {
+                    promises.push(api.updateSecurityRole(app.id, roleId, {
+                        type,
+                        operation,
+                        access: rolesMap[roleName][sourceApp.name]
+                    }))
+                }
             })
         })
     })

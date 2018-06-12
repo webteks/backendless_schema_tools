@@ -87,11 +87,11 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
         prompt(removeColumnMsg(app.name, tableName, columnName))
             .then(res => res && api.removeColumn(app.id, tableName, targetColumn))
 
-    if (!targetColumn) {
+    if (sourceColumn && !targetColumn) {
         return addColumn()
-    } else if (!sourceColumn) {
+    } else if (!sourceColumn && targetColumn) {
         return removeColumn()
-    } else if (targetColumn.optionsString !== sourceColumn.optionsString) {
+    } else if (sourceColumn && targetColumn && targetColumn.optionsString !== sourceColumn.optionsString) {
         return updateColumn()
     }
 

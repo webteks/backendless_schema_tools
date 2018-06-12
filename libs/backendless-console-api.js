@@ -13,9 +13,6 @@ stat = promisify(stat)
 
 const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
 
-const RELATION_URL_SUFFIX = 'relation';
-const GEO_RELATION_URL_SUFFIX = 'georelation';
-
 const filterLive = apps => apps.filter(app => !app.fromJSON)
 
 const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
