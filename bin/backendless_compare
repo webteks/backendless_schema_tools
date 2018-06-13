@@ -33,6 +33,7 @@ Promise.resolve()
             'backendless-url'    : beURL,
             'timeout'            : timeout,
             'verbose'            : verboseOutput,
+            'silent'             : silent,
             'monitor'            : monitorMode,
             'sync'               : syncMode,
             'check-list'         : _checkList
@@ -71,7 +72,7 @@ Promise.resolve()
             .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
             .then(hasDiferences => {
                 if (hasDiferences && syncMode) {
-                    return sync(backendless, apps, checkList)
+                    return sync(backendless, apps, {syncList: checkList, silent})
                         .then(() => hasDiferences)
                 }
 

@@ -10,7 +10,7 @@ const { prompt } = require('./helpers')
 const removeRoleMsg = (app, role) =>
     `Are you sure you want to delete the role ${chalk.bold(`${app}.${role}`)}?`
 
-const syncRoles = (api, apps) => {
+const syncRoles = (api, apps, opts) => {
 
     console.log('Roles sync..')
 
@@ -21,8 +21,9 @@ const syncRoles = (api, apps) => {
             .then(({ data: role }) => app.roles.push(role))
 
     const removeRole = (app, roleId, rolename) =>
-        prompt(removeRoleMsg(app.name, rolename)).then(res =>
-            res && api.removeSecurityRole(app.id, roleId)
+        Promise.resolve()
+            .then(() => opts.silent || prompt(removeRoleMsg(app.name, rolename)))
+            .then(res => res && api.removeSecurityRole(app.id, roleId)
                 .then(() => app.roles = app.roles.filter(role => role.roleId !== roleId)))
 
     return Promise.all(targetApps.map(targetApp => {
@@ -70,7 +71,7 @@ const syncRolesPermissions = (api, apps) => {
 }
 
 
-module.exports = (api, apps) =>
+module.exports = (api, apps, opts) =>
     Promise.resolve()
-        .then(() => syncRoles(api, apps))
+        .then(() => syncRoles(api, apps, opts))
         .then(() => syncRolesPermissions(api, apps))

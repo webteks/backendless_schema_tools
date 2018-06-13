@@ -77,6 +77,10 @@ module.exports = [
                 name       : 'check-list',
                 alias      : 'l',
                 description: `Space separated array of compare types: \n ${_.values(CheckList).join(' ')}`
+            },
+            {
+                name       : 'silent',
+                description: 'Enables silent mode for synchronization. Warning! All schema updates will make without user confirmation'
             }
         ]
     }

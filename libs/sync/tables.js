@@ -26,7 +26,7 @@ const errorHandler = (item, err) => {
     console.error(`Error: ${item} - ${err.message}`, err)
 }
 
-const syncTables = (api, apps) => {
+const syncTables = (api, apps, opts) => {
     log('Schema sync..')
 
     const getTableNames = tables =>
@@ -47,7 +47,7 @@ const syncTables = (api, apps) => {
     const removeTables = (app, tablesNames) => {
         return tablesNames.reduce((p, tableName) => {
             return p
-                .then(() => prompt(removeTableMsg(app.name, tableName)))
+                .then(() => !opts.silent && prompt(removeTableMsg(app.name, tableName)))
                 .then(res => res && removeTable(app.id, tableName))
                 .then(() => app.tables = app.tables.filter(table => table.name !== tableName))
         }, Promise.resolve())
@@ -65,12 +65,13 @@ const syncTables = (api, apps) => {
     }, Promise.resolve())
 }
 
-const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetColumn) => {
+const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetColumn, opts) => {
 
     const addColumn = () => api.addColumn(app.id, tableName, sourceColumn)
 
     const updateColumn = async () =>
-        prompt(updateColumnMsg(app.name, tableName, columnName, sourceColumn, targetColumn))
+        Promise.resolve()
+            .then(() => opts.silent || prompt(updateColumnMsg(app.name, tableName, columnName, sourceColumn, targetColumn)))
             .then(async res => {
                 if (!res) return
 
@@ -84,7 +85,8 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
             })
 
     const removeColumn = () =>
-        prompt(removeColumnMsg(app.name, tableName, columnName))
+        Promise.resolve()
+            .then(() => opts.silent || prompt(removeColumnMsg(app.name, tableName, columnName)))
             .then(res => res && api.removeColumn(app.id, tableName, targetColumn))
 
     if (sourceColumn && !targetColumn) {
@@ -98,7 +100,7 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
     return Promise.resolve()
 }
 
-const syncColumns = (api, apps) => {
+const syncColumns = (api, apps, opts) => {
     const appTablesMap = buildAppTablesMap(apps)
     const [sourceApp, ...targetApps] = apps
 
@@ -114,7 +116,7 @@ const syncColumns = (api, apps) => {
                     const targetColumn = columnsMap[columnName][app.name]
 
                     promise = promise.then(() =>
-                        syncColumn(api, app, tableName, columnName, sourceColumn, targetColumn)
+                        syncColumn(api, app, tableName, columnName, sourceColumn, targetColumn, opts)
                             .catch(err => errorHandler(`${tableName}.${columnName}`, err)))
                 })
             })
@@ -124,10 +126,10 @@ const syncColumns = (api, apps) => {
 }
 
 
-module.exports = (api, apps) =>
+module.exports = (api, apps, opts) =>
     Promise.resolve()
-        .then(() => syncTables(api, apps))
+        .then(() => syncTables(api, apps, opts))
         // update table data
         .then(() => api.getAppDataTables())
-        .then(() => syncColumns(api, apps))
+        .then(() => syncColumns(api, apps, opts))
         .then(() => cleanup(api, apps))

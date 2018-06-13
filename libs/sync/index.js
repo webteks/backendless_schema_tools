@@ -8,7 +8,8 @@ const syncEndpointsPermissions = require('./endpoints-permissions')
 const { SCHEMA, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../../constants/command-options').CheckList
 
 
-module.exports = (api, apps, syncList) => {
+module.exports = (api, apps, opts) => {
+    const { syncList } = opts
     if (!(syncList[SCHEMA] || syncList[ROLE_PERMS] || syncList[TABLE_PERMS] || syncList[API_PERMS])) {
         return
     }
@@ -16,8 +17,8 @@ module.exports = (api, apps, syncList) => {
     console.log('Synchronization..')
 
     return Promise.resolve()
-        .then(() => syncList[SCHEMA] && syncTables(api, apps))
-        .then(() => syncList[ROLE_PERMS] && syncAppPermissions(api, apps))
+        .then(() => syncList[SCHEMA] && syncTables(api, apps, opts))
+        .then(() => syncList[ROLE_PERMS] && syncAppPermissions(api, apps, opts))
         // update table roles
         .then(() => syncList[ROLE_PERMS] && syncList[TABLE_PERMS] && api.getAppDataTableRolePermissions())
 

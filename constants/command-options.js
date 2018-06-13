@@ -19,7 +19,8 @@ module.exports = [
     { name: 'verbose', alias: 'v', type: Boolean, group: 'compare'},
     { name: 'monitor', alias: 'm', type: Boolean, group: 'compare'},
     { name: 'sync', alias: 's', type: Boolean, group: 'compare'},
-    { name: 'check-list', alias: 'l', type: String, defaultValue: _.values(CheckList), multiple: true, group: 'compare'}
+    { name: 'check-list', alias: 'l', type: String, defaultValue: _.values(CheckList), multiple: true, group: 'compare'},
+    { name: 'silent', type: Boolean, group: 'compare'}
 ];
 
 module.exports.CheckList = CheckList
