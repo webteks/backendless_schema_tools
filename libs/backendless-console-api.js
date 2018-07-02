@@ -389,9 +389,9 @@ class Backendless {
     }
 
     static dump(app, path, verbose) {
-        const { ridOfIds, saveDataToFile } = Backendless
+        const { ridOfIds, sort, saveDataToFile } = Backendless
 
-        return saveDataToFile(ridOfIds(app), path, verbose)
+        return saveDataToFile(sort(ridOfIds(app)), path, verbose)
     }
 
     static ridOfIds(app) {
@@ -418,6 +418,25 @@ class Backendless {
         app.services.forEach(service => {
             removeId(service)
             service.methods.forEach(removeId)
+        })
+
+        return app
+    }
+
+    static sort(app) {
+        app.tables = _.sortBy(app.tables, ['name'])
+        app.tables.forEach(table => {
+            table.columns = table.columns &&_.sortBy(table.columns, ['name'])
+            table.relations = table.relations && _.sortBy(table.relations, ['columnName'])
+            table.geoRelations = table.geoRelations && _.sortBy(table.geoRelations, ['columnName'])
+            table.roles = table.roles && _.sortBy(table.roles, ['columnName'])
+        })
+
+        app.roles = _.sortBy(app.roles, ['rolename'])
+        app.services = _.sortBy(app.services, ['name'])
+
+        app.services.forEach(service => {
+            service.methods = _.sortBy(service.methods, ['method'])
         })
 
         return app
