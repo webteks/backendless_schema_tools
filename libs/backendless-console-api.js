@@ -426,10 +426,12 @@ class Backendless {
     static sort(app) {
         app.tables = _.sortBy(app.tables, ['name'])
         app.tables.forEach(table => {
-            table.columns = table.columns &&_.sortBy(table.columns, ['name'])
-            table.relations = table.relations && _.sortBy(table.relations, ['columnName'])
-            table.geoRelations = table.geoRelations && _.sortBy(table.geoRelations, ['columnName'])
-            table.roles = table.roles && _.sortBy(table.roles, ['columnName'])
+            const {columns, relations, geoRelations, roles} = table
+
+            table.columns = columns &&_.sortBy(columns, ['name'])
+            table.relations = relations && _.sortBy(relations, ['columnName'])
+            table.geoRelations = geoRelations && _.sortBy(geoRelations, ['columnName'])
+            table.roles = roles && _.sortBy(roles, ['name'])
         })
 
         app.roles = _.sortBy(app.roles, ['rolename'])
