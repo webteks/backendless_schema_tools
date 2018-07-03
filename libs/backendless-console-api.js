@@ -389,38 +389,46 @@ class Backendless {
     }
 
     static dump(app, path, verbose) {
-        const { ridOfIds, sort, saveDataToFile } = Backendless
+        const { sort, saveDataToFile } = Backendless
 
-        return saveDataToFile(sort(ridOfIds(app)), path, verbose)
-    }
-
-    static ridOfIds(app) {
         const removeId = item => delete item.id
         const removeRoleId = role => delete role.roleId
-        const removeColumnId = column => delete column.columnId
-        const removeRelationId = relation => {
+
+        const cleanColumn = column => {
+            delete column.columnId
+            delete column.dataSize
+        }
+
+        const cleanRelation = relation => {
             delete relation.columnId
             delete relation.fromTableId
             delete relation.toTableId
         }
 
-        app.tables.forEach(table => {
+        const cleanTable = table => {
             delete table.tableId;
+            delete table.parentRelations;
 
-            (table.columns || []).forEach(removeColumnId);
-            (table.relations || []).forEach(removeRelationId);
-            (table.geoRelations || []).forEach(removeRelationId);
+            (table.columns || []).forEach(cleanColumn);
+            (table.relations || []).forEach(cleanRelation);
+            (table.geoRelations || []).forEach(cleanRelation);
             (table.roles || []).forEach(removeRoleId)
-        })
+        }
 
+        app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
 
         app.services.forEach(service => {
             removeId(service)
+            delete service.updateNotes
+
             service.methods.forEach(removeId)
         })
 
-        return app
+        delete app.id
+        delete app.secretKey
+
+        return saveDataToFile(sort(app), path, verbose)
     }
 
     static sort(app) {
@@ -439,6 +447,15 @@ class Backendless {
 
         app.services.forEach(service => {
             service.methods = _.sortBy(service.methods, ['method'])
+            service.methods.forEach(method => {
+                const roles = {}
+
+                Object.keys(method.roles).sort().forEach(roleName => {
+                    roles[roleName] = method.roles[roleName]
+                })
+
+                method.roles = roles
+            })
         })
 
         return app

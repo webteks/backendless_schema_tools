@@ -14,6 +14,7 @@ const buildColumnsMap = table => {
             column.unique && (options.push('UQ'))
             column.required && (options.push('NN'))
             column.indexed && (options.push('IDX'))
+            column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
             column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
 
             column.options = options
