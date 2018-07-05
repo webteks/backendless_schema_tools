@@ -5,7 +5,7 @@ const syncAppPermissions = require('./app-permissions')
 const syncTablesPermissions = require('./tables-permissions')
 const syncEndpointsPermissions = require('./endpoints-permissions')
 
-const { SCHEMA, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../../constants/command-options').CheckList
+const { SCHEMA, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('../constants/command-options').CheckList
 
 
 module.exports = (api, apps, opts) => {

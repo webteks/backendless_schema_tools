@@ -1,6 +1,6 @@
 const ansi = require('ansi-escape-sequences');
 const chalk = require('chalk');
-const package = require('../package.json');
+const package = require('../../package.json');
 
 module.exports = [
     {

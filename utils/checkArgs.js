@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const chalk = require('chalk');
 const getUsage = require('command-line-usage');
-const helpFile = require('../constants/command-help');
+const helpFile = require('../libs/constants/command-help');
 
 const help = getUsage(helpFile);
 
