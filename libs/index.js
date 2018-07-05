@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+'use strict'
+
 const BackendlessConsole = require('../libs/backendless-console-api.js')
 
 const util = require('util')
@@ -9,7 +10,7 @@ const compareEndpointsPermissions = require('../libs/comparator/endpoints-permis
 const compareAppPermissions = require('../libs/comparator/app-permissions')
 const sync = require('../libs/sync')
 
-const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('./constants/command-options').CheckList
+const {SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS} = require('./constants/command-options').CheckList
 
 module.exports = options => {
 
@@ -17,6 +18,11 @@ module.exports = options => {
         o[key] = true
         return o
     }, {})
+
+    const {
+        username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
+        timeout, verboseOutput, silent, monitorMode, syncMode
+    } = options
 
     const backendless = new BackendlessConsole(
         username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
