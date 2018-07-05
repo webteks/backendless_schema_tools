@@ -27,7 +27,7 @@ module.exports = (api, apps) => {
             const method = service.methods.find(({ method }) => method === methodName)
 
             roles.forEach(roleName => {
-                const { roleId } = service.roles.find(role => role.name === roleName)
+                const { roleId } = app.roles.find(role => role.rolename === roleName)
                 const access = rolesMap[roleName][sourceApp.name]
                 const key = [app.id, service.id, roleId].join('.')
 
