@@ -12,24 +12,8 @@ const sync = require('../libs/sync')
 const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS } = require('./constants/command-options').CheckList
 
 module.exports = options => {
-    const {
-        'username'           : username,
-        'password'           : password,
-        'reference'          : appControl,
-        'compare'            : appsToCheck,
-        'dump'               : dumpPath,
-        'reporting-directory': reportingDir,
-        'backendless-url'    : beURL,
-        'timeout'            : timeout,
-        'verbose'            : verboseOutput,
-        'silent'             : silent,
-        'monitor'            : monitorMode,
-        'sync'               : syncMode,
-        'check-list'         : _checkList
-    } = options
 
-
-    const checkList = _checkList.reduce((o, key) => {
+    const checkList = options.checkList.reduce((o, key) => {
         o[key] = true
         return o
     }, {})

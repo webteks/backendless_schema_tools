@@ -16,12 +16,31 @@ const options = commandLineArgs(optionDefinitions).compare
 
 checkForArguments(options)
 
+const {
+    'username'           : username,
+    'password'           : password,
+    'reference'          : appControl,
+    'compare'            : appsToCheck,
+    'dump'               : dumpPath,
+    'reporting-directory': reportingDir,
+    'backendless-url'    : beURL,
+    'timeout'            : timeout,
+    'verbose'            : verboseOutput,
+    'silent'             : silent,
+    'monitor'            : monitorMode,
+    'sync'               : syncMode,
+    'check-list'         : checkList
+} = options
+
 if (!options.monitor) {
     console.log(banner)
 }
 
 Promise.resolve()
-    .then(() => compare(options))
+    .then(() => compare({
+        username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
+        timeout, verboseOutput, silent, monitorMode, syncMode, checkList
+    }))
     .then(() => process.exit(0))
     .catch(err => {
         console.log(util.inspect(err))
