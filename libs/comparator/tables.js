@@ -101,8 +101,7 @@ const printDifferences = (apps, appTablesMap) => {
     })
 
     if (result) {
-        console.log('\nTable schema:')
-        console.log(table.toString())
+        console.log('\nTable schema:\n' + table.toString())
     }
 
     return result;

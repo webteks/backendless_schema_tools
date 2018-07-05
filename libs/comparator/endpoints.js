@@ -39,8 +39,7 @@ const printDifferences = (apps, map) => {
     });
 
     if (result) {
-        console.log('\nEndpoints:')
-        console.log(table.toString())
+        console.log('\nEndpoints:\n' + table.toString())
     }
 
     return result

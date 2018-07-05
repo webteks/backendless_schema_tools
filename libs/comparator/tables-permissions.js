@@ -51,8 +51,7 @@ const printDifferences = (apps, tablesMap) => {
     });
 
     if (result) {
-        console.log('\nTable Permissions:')
-        console.log(table.toString())
+        console.log('\nTable Permissions:\n' + table.toString())
     }
 
     return result

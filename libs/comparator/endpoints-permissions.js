@@ -30,8 +30,7 @@ const printDifferences = (apps, map) => {
     })
 
     if (result) {
-        console.log('\nEndpoints Permissions:')
-        console.log(table.toString())
+        console.log('\nEndpoints Permissions:\n' + table.toString())
     }
 
     return result
