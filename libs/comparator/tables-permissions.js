@@ -4,21 +4,23 @@ const _ = require('lodash');
 const Table = require('cli-table');
 
 const containsDifferences = (apps, roleName, rolesMap) => {
-    const versions = _.uniqBy(apps, app => {
-        const tableExistsInMoreThanOneApp = Object.keys(rolesMap[roleName]).length > 1;
+    const tableExistsInMoreThanOneApp = Object.keys(rolesMap[roleName]).length > 1;
 
-        //ignore missed app tables. Such difference is reported by table comparator
-        if (tableExistsInMoreThanOneApp) {
+    if (tableExistsInMoreThanOneApp) {
+        const versions = _.uniqBy(apps, app => {
             const access = rolesMap[roleName][app.name];
 
             //ignore inherited permissions. Such difference is reported by app permissions comparator
             if (access && !access.includes('INHERIT')) {
                 return access;
             }
-        }
-    })
+        })
 
-    return versions.length > 1
+        return versions.length > 1
+    }
+
+    //ignore missed app tables. Such difference is reported by table comparator
+    return false
 }
 
 const printDifferences = (apps, tablesMap) => {
@@ -34,7 +36,8 @@ const printDifferences = (apps, tablesMap) => {
         Object.keys(operationsMap).sort().forEach(operation => {
             const rolesMap = operationsMap[operation]
 
-            const roles = Object.keys(rolesMap).filter(roleName => containsDifferences(apps, roleName, rolesMap))
+            const roles = Object.keys(rolesMap).filter(
+                roleName => containsDifferences(apps, roleName, rolesMap))
 
             if (roles.length === 0) {
                 return
@@ -63,11 +66,11 @@ const buildTableRolesMap = apps => {
         app.tables.forEach(table => {
             const tableMap = map[table.name] || (map[table.name] = {});
 
-            (table.roles || []).forEach(appRole => {
-                _.sortBy(appRole.permissions, 'operation').forEach(({ operation, access }) => {
+            Object.keys(table.roles || {}).forEach(roleName => {
+                Object.keys(table.roles[roleName]).forEach(operation => {
                     const operationMap = tableMap[operation] || (tableMap[operation] = {})
-                    operationMap[appRole.name] || (operationMap[appRole.name] = {})
-                    operationMap[appRole.name][app.name] = access
+                    operationMap[roleName] || (operationMap[roleName] = {})
+                    operationMap[roleName][app.name] = table.roles[roleName][operation]
                 })
             })
         })

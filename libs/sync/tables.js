@@ -13,7 +13,7 @@ const removeTableMsg = (app, table) => `Are you sure you want to delete the tabl
 
 const updateColumnMsg = (app, table, column, source, target) =>
     `Are you sure you want to update the column ${chalk.bold(`${app}.${table}.${column}`)}: ` +
-    `"${source.optionsString}" => "${target.optionsString}"?`
+    `"${target.optionsString}" => "${source.optionsString}"?`
 
 const removeColumnMsg = (app, table, column) =>
     `Are you sure you want to delete the column ${chalk.bold(`${app}.${table}.${column}`)}?`
@@ -75,7 +75,7 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
             .then(async res => {
                 if (!res) return
 
-                if (sourceColumn.defaultValue && sourceColumn.required) {
+                if (sourceColumn.defaultValue != null && sourceColumn.required) {
                     const where = `${columnName} is null`
 
                     await bulkUpdate(api, app, tableName, where, { [columnName]: sourceColumn.defaultValue })

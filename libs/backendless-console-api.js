@@ -3,9 +3,9 @@
 const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
-const { promisify } = require('util')
+const {promisify} = require('util')
 
-let { readFile, writeFile, stat } = require('fs')
+let {readFile, writeFile, stat} = require('fs')
 
 writeFile = promisify(writeFile)
 readFile = promisify(readFile)
@@ -18,6 +18,20 @@ const filterLive = apps => apps.filter(app => !app.fromJSON)
 const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
 
 const isRelation = column => !!column.relationshipType
+
+const normalizeTablePermissions = roles => {
+    const result = {}
+
+    _.sortBy(roles, ['name']).forEach(role => {
+        result[role.name] = {}
+
+        _.sortBy(role.permissions, 'operation').forEach(({operation, access}) => {
+            result[role.name][operation] = access
+        })
+    })
+
+    return result
+}
 
 class Backendless {
     constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput) {
@@ -33,7 +47,7 @@ class Backendless {
             baseURL: beURL,
             timeout: timeout,
             headers: {
-                'content-type'    : 'application/json',
+                'content-type': 'application/json',
                 'application-type': 'REST'
             }
         })
@@ -63,10 +77,10 @@ class Backendless {
             clientBaseURL: beURL,
             serverBaseURL,
             appsContext,
-            appList      : [],
-            appsToCheck  : [],
+            appList: [],
+            appsToCheck: [],
             appNamesToCheck,
-            controlApp   : {},
+            controlApp: {},
             controlAppName,
             instance,
             password,
@@ -77,8 +91,8 @@ class Backendless {
     }
 
     /* Build app headers given appId and secretKey */
-    _getAppHeaders({ appId, secretKey }) {
-        return { headers: { 'application-id': appId, 'secret-key': secretKey } }
+    _getAppHeaders({appId, secretKey}) {
+        return {headers: {'application-id': appId, 'secret-key': secretKey}}
     }
 
     /* Build appversion api path provided currentVersionId */
@@ -88,7 +102,7 @@ class Backendless {
 
     /* Authenticate user & add auth-key to header for future requests */
     login() {
-        return this.instance.post('/console/home/login', { 'login': this.username, 'password': this.password })
+        return this.instance.post('/console/home/login', {'login': this.username, 'password': this.password})
             .then(res => this.instance.defaults.headers['auth-key'] = res.headers['auth-key'])
     }
 
@@ -123,7 +137,7 @@ class Backendless {
 
     getAppList() {
         return this.instance.get('/console/applications')
-            .then(({ data: appList }) => this.appList.push(...appList))
+            .then(({data: appList}) => this.appList.push(...appList))
     }
 
     /* Filter application list based on beVersion & which apps are actually needed for checks */
@@ -138,7 +152,7 @@ class Backendless {
             filterLive(this.appList).map(app => {
                 if (app.id) {
                     return this.instance.get(`/${app.id}/console/appsettings`)
-                        .then(({ data }) => app.secretKey = data.devices.REST)
+                        .then(({data}) => app.secretKey = data.devices.REST)
                 }
             })
         )
@@ -149,6 +163,11 @@ class Backendless {
 
         const normalizeTable = table => {
             table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name))
+            table.columns.forEach(column => {
+                if (column.dataType === 'BOOLEAN' && column.defaultValue) {
+                    column.defaultValue = column.defaultValue === 'true'
+                }
+            })
 
             return table
         }
@@ -156,7 +175,7 @@ class Backendless {
         return Promise.all(
             filterLive(this.appList).map(app => {
                 return this.instance.get(`${this._getConsoleApiUrl(app)}/data/tables`)
-                    .then(({ data }) => app.tables = _.sortBy(data.tables, 'name').map(normalizeTable))
+                    .then(({data}) => app.tables = _.sortBy(data.tables, 'name').map(normalizeTable))
             })
         )
     }
@@ -170,7 +189,7 @@ class Backendless {
 
         return Promise.all(
             filterLive(this.appList).map(app => {
-                return this.getRoles(app.id).then(({ data }) => app.roles = data)
+                return this.getRoles(app.id).then(({data}) => app.roles = data)
             })
         )
     }
@@ -182,7 +201,7 @@ class Backendless {
             filterLive(this.appList).map(app => Promise.all(
                 app.roles.map(role => {
                     return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
-                        .then(({ data }) => role.permissions = data)
+                        .then(({data}) => role.permissions = data)
                 })
             ))
         )
@@ -196,7 +215,7 @@ class Backendless {
                 return Promise.all(
                     app.tables.map(table => {
                         return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/users`)
-                            .then(({ data }) => table.users = data.data)
+                            .then(({data}) => table.users = normalizeTablePermissions(data.data))
                     })
                 )
             })
@@ -211,7 +230,7 @@ class Backendless {
                 app.tables.map(table => {
 
                     return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
-                        .then(({ data }) => table.roles = data)
+                        .then(({data}) => table.roles = normalizeTablePermissions(data))
                 }))
             )
         )
@@ -223,12 +242,12 @@ class Backendless {
         return Promise.all(
             filterLive(this.appList).map(async app => {
 
-                return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({ data: services }) => {
+                return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({data: services}) => {
                     app.services = services
 
                     return Promise.all(services.map(service => {
                         return this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
-                            .then(({ data: methods }) => service.methods = methods)
+                            .then(({data: methods}) => service.methods = methods)
                     }))
                 })
             })
@@ -245,14 +264,14 @@ class Backendless {
 
                     return this.instance.get(
                         `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
-                        .then(({ data }) => {
+                        .then(({data}) => {
                             // endpoint permission sync requires roles list
                             if (appIndex > 0) {
                                 service.roles = data
                             }
 
                             data.forEach(role => {
-                                role.permissions.forEach(({ operation, access }) => {
+                                role.permissions.forEach(({operation, access}) => {
                                     const method = methodsMap[operation]
 
                                     method.roles = method.roles || {}
@@ -287,7 +306,7 @@ class Backendless {
 
     /* Set controlApp & appsToCheck from appList and return copy of data */
     getApps() {
-        const findAppByName = appName => _.find(this.appList, { 'name': appName })
+        const findAppByName = appName => _.find(this.appList, {'name': appName})
         const controlApp = findAppByName(this.controlAppName)
 
         if (!controlApp) {
@@ -308,7 +327,7 @@ class Backendless {
     }
 
     addTable(appId, name) {
-        return this.instance.post(`${appId}/console/data/tables`, { name })
+        return this.instance.post(`${appId}/console/data/tables`, {name})
     }
 
     removeTable(appId, name) {
@@ -381,17 +400,16 @@ class Backendless {
     }
 
     deleteRecord(appId, table, record) {
-        return this.instance.delete(`${appId}/console/data/tables/${table}/records`, { data: [record] })
+        return this.instance.delete(`${appId}/console/data/tables/${table}/records`, {data: [record]})
     }
 
     updateAssignedUserRoles(appId, users, roles) {
-        return this.instance.put(`${appId}/console/security/assignedroles`, { users, roles })
+        return this.instance.put(`${appId}/console/security/assignedroles`, {users, roles})
     }
 
     static dump(app, path, verbose) {
-        const { sort, saveDataToFile } = Backendless
+        const {sort, saveDataToFile} = Backendless
 
-        const removeId = item => delete item.id
         const removeRoleId = role => delete role.roleId
 
         const cleanColumn = column => {
@@ -412,21 +430,24 @@ class Backendless {
             (table.columns || []).forEach(cleanColumn);
             (table.relations || []).forEach(cleanRelation);
             (table.geoRelations || []).forEach(cleanRelation);
-            (table.roles || []).forEach(removeRoleId)
         }
 
         app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
 
         app.services.forEach(service => {
-            removeId(service)
+            delete service.id
             delete service.updateNotes
 
-            service.methods.forEach(removeId)
+            service.methods.forEach(method => {
+                delete method.id
+                delete method.signature
+            })
         })
 
         delete app.id
         delete app.secretKey
+        delete app.name
 
         return saveDataToFile(sort(app), path, verbose)
     }
@@ -434,12 +455,11 @@ class Backendless {
     static sort(app) {
         app.tables = _.sortBy(app.tables, ['name'])
         app.tables.forEach(table => {
-            const {columns, relations, geoRelations, roles} = table
+            const {columns, relations, geoRelations} = table
 
-            table.columns = columns &&_.sortBy(columns, ['name'])
+            table.columns = columns && _.sortBy(columns, ['name'])
             table.relations = relations && _.sortBy(relations, ['columnName'])
             table.geoRelations = geoRelations && _.sortBy(geoRelations, ['columnName'])
-            table.roles = roles && _.sortBy(roles, ['name'])
         })
 
         app.roles = _.sortBy(app.roles, ['rolename'])

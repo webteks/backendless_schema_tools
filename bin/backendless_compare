@@ -43,8 +43,5 @@ Promise.resolve()
     }))
     .then(() => process.exit(0))
     .catch(err => {
-        console.log(util.inspect(err))
-        console.log(chalk.bold.red(err))
-
         process.exit(1)
     })

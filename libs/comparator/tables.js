@@ -15,7 +15,7 @@ const buildColumnsMap = table => {
             column.required && (options.push('NN'))
             column.indexed && (options.push('IDX'))
             column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
-            column.defaultValue && (options.push(`DEFAULT:${column.defaultValue}`))
+            column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
 
             column.options = options
             column.optionsString = options.join(', ')
