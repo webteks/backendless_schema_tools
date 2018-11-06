@@ -43,22 +43,33 @@ module.exports = options => {
         .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
         .then(() => apps = backendless.getApps())
         .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput))
-        .then(() => checkList[SCHEMA] && compareTables(apps))
-        .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
-        .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
-        .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
-        .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
-        .then(hasDiferences => {
-            if (hasDiferences && syncMode) {
-                return sync(backendless, apps, {syncList: checkList, silent})
-                    .then(() => hasDiferences)
-            }
+        .then(() => {
+            if (apps.length > 1) {
+                return Promise.resolve()
+                    .then(() => checkList[SCHEMA] && compareTables(apps))
+                    .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
+                    .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
+                    .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
+                    .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
+                    .then(hasDiferences => {
+                        if (hasDiferences && syncMode) {
+                            return sync(backendless, apps, {syncList: checkList, silent})
+                                .then(() => hasDiferences)
+                        }
 
-            return hasDiferences
-        })
-        .then(hasDiferences => {
-            if (hasDiferences && monitorMode) {
-                throw new Error('Differences detected')
+                        return hasDiferences
+                    })
+                    .then(hasDiferences => {
+                        if (hasDiferences && monitorMode) {
+                            throw new Error('Differences detected')
+                        }
+                    })
             }
+        })
+        .catch(err => {
+            console.log(util.inspect(err))
+            console.log(chalk.bold.red(err))
+
+            throw err
         })
 }
