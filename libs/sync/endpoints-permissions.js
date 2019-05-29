@@ -51,7 +51,7 @@ module.exports = (api, apps) => {
         return Promise.all([
             ...inheritedPermissions.map(perm => api.resetEndpointPermissions(appId, serviceId, roleId, perm.operation)),
             api.updateEndpointPermissions(appId, serviceId, roleId, { permissions })
-                .catch(err => console.error(err.response.data))
+                .catch(err => console.error(err.response && (err.response.data || err.response) || err))
         ])
     }))
 }
