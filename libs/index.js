@@ -1,5 +1,7 @@
 'use strict'
 
+const chalk = require('chalk')
+
 const BackendlessConsole = require('../libs/backendless-console-api.js')
 
 const util = require('util')
