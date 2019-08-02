@@ -5,6 +5,8 @@ const axios = require('axios')
 const chalk = require('chalk')
 const {promisify} = require('util')
 
+const {runInParallel} = require('../utils/async')
+
 let {readFile, writeFile, stat} = require('fs')
 
 writeFile = promisify(writeFile)
@@ -197,14 +199,18 @@ class Backendless {
     getAppRolePermissions() {
         console.log('Fetching roles global permissions..')
 
-        return Promise.all(
-            filterLive(this.appList).map(app => Promise.all(
-                app.roles.map(role => {
-                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
+        const tasks = []
+
+        filterLive(this.appList).forEach(app => {
+            app.roles.map(role => {
+                tasks.push(() =>
+                    this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
                         .then(({data}) => role.permissions = data)
-                })
-            ))
-        )
+                )
+            })
+        })
+
+        return runInParallel(tasks, 10)
     }
 
     getAppDataTableUserPermissions() {
@@ -225,43 +231,48 @@ class Backendless {
     getAppDataTableRolePermissions() {
         console.log('Fetching roles Data API permissions..')
 
-        return Promise.all(
-            filterLive(this.appList).map(app => Promise.all(
-                app.tables.map(table => {
+        const tasks = []
 
-                    return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
+        filterLive(this.appList).forEach(app => {
+            app.tables.map(table => {
+                tasks.push(() =>
+                    this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
                         .then(({data}) => table.roles = normalizeTablePermissions(data))
-                }))
-            )
-        )
+                )
+            })
+        })
+
+        return runInParallel(tasks, 10)
     }
 
     getAppServices() {
         console.log('Fetching API Services..')
 
-        return Promise.all(
-            filterLive(this.appList).map(async app => {
+        const tasks = []
 
-                return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({data: services}) => {
-                    app.services = services
+        return Promise.all(filterLive(this.appList).map(async app => {
+            return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({data: services}) => {
+                app.services = services
 
-                    return Promise.all(services.map(service => {
-                        return this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
-                            .then(({data: methods}) => service.methods = methods)
-                    }))
+                services.forEach(service => {
+                    tasks.push(() =>
+                        this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
+                            .then(({data: methods}) => service.methods = methods))
                 })
             })
-        )
+        })).then(() => runInParallel(tasks, 10))
     }
 
     getAppServicesRolePermissions() {
         console.log('Fetching roles Services API permissions..')
 
-        return Promise.all(
-            filterLive(this.appList).map(async (app, appIndex) => {
-                return Promise.all(app.services.map(service => {
-                    const methodsMap = _.keyBy(service.methods, 'id')
+        const tasks = []
 
+        filterLive(this.appList).forEach(async (app, appIndex) => {
+            app.services.forEach(service => {
+                const methodsMap = _.keyBy(service.methods, 'id')
+
+                tasks.push(() => {
                     return this.instance.get(
                         `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
                         .then(({data}) => {
@@ -279,9 +290,11 @@ class Backendless {
                                 })
                             })
                         })
-                }))
+                })
             })
-        )
+        })
+
+        return runInParallel(tasks, 10)
     }
 
     /* Get main app meta data and return */
