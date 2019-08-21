@@ -1,5 +1,7 @@
 'use strict'
 
+require('axios-debug-log')
+
 const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
